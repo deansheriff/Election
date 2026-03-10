@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/services/api_service.dart';
 
 class VoteReceiptScreen extends ConsumerWidget {
   final String electionType;
@@ -30,7 +31,7 @@ class VoteReceiptScreen extends ConsumerWidget {
           if (snap.hasError || !snap.hasData) {
             return const Center(child: Text('Could not load receipt'));
           }
-          final r = snap.data!;
+          final r = snap.data! as Map<String, dynamic>;
           final colorHex = r['color_hex'] ?? '#008751';
           final color = Color(int.parse('0xFF${colorHex.replaceAll('#', '')}'));
           final castAt = r['cast_at'] != null ? DateTime.parse(r['cast_at']) : DateTime.now();

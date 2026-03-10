@@ -225,7 +225,7 @@ class _ThresholdTracker extends ConsumerWidget {
                 final meets = t['meets_threshold'] == true;
 
                 return Column(
-                  main AxisSize: MainAxisSize.min,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     CircularPercentIndicator(
                       radius: 44,
