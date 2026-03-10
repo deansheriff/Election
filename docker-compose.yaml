@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: voteng_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-voteng_root_password}
+      MYSQL_DATABASE: ${DB_NAME:-voteng2027}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/2-seed.sql
+      - db_data:/var/lib/mysql
+    networks:
+      - voteng_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  api:
+    build:
+      context: ./voteng_api
+      dockerfile: Dockerfile
+    container_name: voteng_api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - PORT=3000
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=${DB_PASSWORD:-voteng_root_password}
+      - DB_NAME=${DB_NAME:-voteng2027}
+      - JWT_SECRET=${JWT_SECRET:-voteng2027_super_secret_jwt_key_change_in_production}
+      - JWT_EXPIRES_IN=7d
+      - OTP_EXPIRY_MINUTES=10
+      - ADMIN_SECRET=${ADMIN_SECRET:-voteng_admin_secret}
+    ports:
+      - "3000:3000"
+    networks:
+      - voteng_network
+
+  web:
+    build:
+      context: ./voteng_app
+      dockerfile: Dockerfile
+    container_name: voteng_web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+    networks:
+      - voteng_network
+
+networks:
+  voteng_network:
+    driver: bridge
+
+volumes:
+  db_data:

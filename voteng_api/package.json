@@ -1,0 +1,14 @@
+{
+  "name": "voteng-api",
+  "version": "1.0.0",
+  "description": "VoteNG 2027 - Nigeria Mock Election Platform REST API",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "setup-db": "mysql -u root -p < ../database/schema.sql && mysql -u root -p < ../database/seed.sql"
+  },
+  "keywords": ["nigeria", "election", "2027", "voting", "mock election"],
+  "author": "VoteNG Team",
+  "license": "MIT"
+}
