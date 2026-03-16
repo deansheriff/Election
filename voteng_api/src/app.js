@@ -29,6 +29,41 @@ app.use('/votes', require('./routes/votes'));
 app.use('/analytics', require('./routes/analytics'));
 app.use('/admin', require('./routes/admin'));
 
+// ── TEMP: one-time admin setup (visit in browser, then remove) ──
+app.get('/setup-admin', async (req, res) => {
+    try {
+        const bcrypt = require('bcryptjs');
+        const adminEmail = 'admin@voteng.ng';
+        const adminPhone = '+2340000000000';
+        const adminPass = 'Admin@2027';
+
+        const [existing] = await db.query(
+            'SELECT id FROM users WHERE email = ? OR phone = ?',
+            [adminEmail, adminPhone]
+        );
+
+        if (existing.length) {
+            // Admin exists — reset their password to make sure it's correct
+            const hash = await bcrypt.hash(adminPass, 10);
+            await db.query(
+                'UPDATE users SET password_hash = ?, is_verified = 1, is_admin = 1 WHERE id = ?',
+                [hash, existing[0].id]
+            );
+            return res.send('<h1>✅ Admin user already existed — password reset to Admin@2027</h1><p>Email: admin@voteng.ng</p><p>Password: Admin@2027</p>');
+        }
+
+        const hash = await bcrypt.hash(adminPass, 10);
+        await db.query(
+            `INSERT INTO users (full_name, email, phone, state, lga, gender, age, geopolitical_zone, password_hash, is_verified, is_admin)
+             VALUES (?, ?, ?, 'FCT Abuja', 'AMAC', 'male', 35, 'North-Central', ?, 1, 1)`,
+            ['VoteNG Admin', adminEmail, adminPhone, hash]
+        );
+        return res.send('<h1>✅ Admin user created!</h1><p>Email: admin@voteng.ng</p><p>Password: Admin@2027</p>');
+    } catch (err) {
+        return res.status(500).send('<h1>❌ Error</h1><pre>' + err.message + '</pre>');
+    }
+});
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
