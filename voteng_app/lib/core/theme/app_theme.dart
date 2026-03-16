@@ -90,7 +90,7 @@ ThemeData buildAppTheme() {
       ),
       iconTheme: const IconThemeData(color: AppColors.textPrimary),
     ),
-    cardTheme: CardThemeData(
+    cardTheme: CardTheme(
       color: AppColors.cardBg,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
