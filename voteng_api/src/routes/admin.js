@@ -291,4 +291,188 @@ router.get('/smtp-settings', (req, res) => {
     }
 });
 
+// ── ELECTION SIMULATION ──────────────────────────────
+// POST /admin/simulate  — generate fake voters + votes
+const bcrypt = require('bcryptjs');
+
+const NIGERIAN_STATES = [
+    { name: 'Abia', zone: 'South-East' }, { name: 'Adamawa', zone: 'North-East' },
+    { name: 'Akwa Ibom', zone: 'South-South' }, { name: 'Anambra', zone: 'South-East' },
+    { name: 'Bauchi', zone: 'North-East' }, { name: 'Bayelsa', zone: 'South-South' },
+    { name: 'Benue', zone: 'North-Central' }, { name: 'Borno', zone: 'North-East' },
+    { name: 'Cross River', zone: 'South-South' }, { name: 'Delta', zone: 'South-South' },
+    { name: 'Ebonyi', zone: 'South-East' }, { name: 'Edo', zone: 'South-South' },
+    { name: 'Ekiti', zone: 'South-West' }, { name: 'Enugu', zone: 'South-East' },
+    { name: 'Gombe', zone: 'North-East' }, { name: 'Imo', zone: 'South-East' },
+    { name: 'Jigawa', zone: 'North-West' }, { name: 'Kaduna', zone: 'North-West' },
+    { name: 'Kano', zone: 'North-West' }, { name: 'Katsina', zone: 'North-West' },
+    { name: 'Kebbi', zone: 'North-West' }, { name: 'Kogi', zone: 'North-Central' },
+    { name: 'Kwara', zone: 'North-Central' }, { name: 'Lagos', zone: 'South-West' },
+    { name: 'Nasarawa', zone: 'North-Central' }, { name: 'Niger', zone: 'North-Central' },
+    { name: 'Ogun', zone: 'South-West' }, { name: 'Ondo', zone: 'South-West' },
+    { name: 'Osun', zone: 'South-West' }, { name: 'Oyo', zone: 'South-West' },
+    { name: 'Plateau', zone: 'North-Central' }, { name: 'Rivers', zone: 'South-South' },
+    { name: 'Sokoto', zone: 'North-West' }, { name: 'Taraba', zone: 'North-East' },
+    { name: 'Yobe', zone: 'North-East' }, { name: 'Zamfara', zone: 'North-West' },
+    { name: 'FCT Abuja', zone: 'North-Central' },
+];
+
+const FIRST_NAMES = ['Chinedu', 'Aisha', 'Emeka', 'Fatima', 'Obi', 'Amina', 'Tunde', 'Ngozi',
+    'Musa', 'Chioma', 'Ibrahim', 'Adaeze', 'Yusuf', 'Temitope', 'Bala', 'Nneka', 'Abdullahi',
+    'Funke', 'Hassan', 'Blessing', 'Ahmed', 'Ifeoma', 'Sani', 'Grace', 'Danladi', 'Joy',
+    'Mohammed', 'Esther', 'Aliyu', 'Peace', 'Umar', 'Ruth', 'Kabiru', 'Mary', 'Garba'];
+const LAST_NAMES = ['Okafor', 'Mohammed', 'Adeyemi', 'Ibrahim', 'Okonkwo', 'Bello', 'Abubakar',
+    'Eze', 'Suleiman', 'Nnamdi', 'Abdullahi', 'Adekunle', 'Musa', 'Okeke', 'Yusuf', 'Chukwu',
+    'Ogundipe', 'Bakare', 'Lawal', 'Onwueme', 'Danjuma', 'Osei', 'Aliyu', 'Nwosu', 'Garuba'];
+
+router.post('/simulate', async (req, res) => {
+    try {
+        const { voter_count = 500, election_types = ['presidential'] } = req.body;
+        const count = Math.min(Math.max(parseInt(voter_count) || 500, 10), 10000);
+
+        // Get candidates for the requested election types
+        const [candidates] = await db.query(
+            'SELECT c.id, c.full_name, c.election_type, p.abbreviation FROM candidates c JOIN parties p ON c.party_id = p.id WHERE c.election_type IN (?)',
+            [election_types]
+        );
+
+        if (!candidates.length) {
+            return res.status(400).json({ error: 'No candidates found for the requested election types' });
+        }
+
+        // Group candidates by election type
+        const byType = {};
+        for (const c of candidates) {
+            if (!byType[c.election_type]) byType[c.election_type] = [];
+            byType[c.election_type].push(c);
+        }
+
+        // Assign weighted probabilities (incumbent gets a boost, add randomness)
+        for (const type of Object.keys(byType)) {
+            const cands = byType[type];
+            let weights = cands.map(() => 0.5 + Math.random() * 2); // random base weight 0.5–2.5
+            const total = weights.reduce((a, b) => a + b, 0);
+            byType[type] = cands.map((c, i) => ({ ...c, weight: weights[i] / total }));
+        }
+
+        // Create simulated password hash once
+        const simHash = await bcrypt.hash('SimUser123!', 4); // low rounds for speed
+
+        const batchSize = 50;
+        let totalVotes = 0;
+
+        for (let batch = 0; batch < count; batch += batchSize) {
+            const thisBatch = Math.min(batchSize, count - batch);
+            const userValues = [];
+            const userParams = [];
+
+            for (let i = 0; i < thisBatch; i++) {
+                const stateInfo = NIGERIAN_STATES[Math.floor(Math.random() * NIGERIAN_STATES.length)];
+                const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+                const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+                const gender = Math.random() < 0.5 ? 'male' : 'female';
+                const age = 18 + Math.floor(Math.random() * 52); // 18–69
+                const phone = `+234${String(7000000000 + batch + i).padStart(10, '0')}`;
+
+                userValues.push('(?, ?, ?, ?, ?, ?, ?, ?, 1, 0)');
+                userParams.push(
+                    `${firstName} ${lastName}`, phone, stateInfo.name,
+                    'N/A', gender, age, stateInfo.zone, simHash
+                );
+            }
+
+            const [insertResult] = await db.query(
+                `INSERT INTO users (full_name, phone, state, lga, gender, age, geopolitical_zone, password_hash, is_verified, is_admin) VALUES ${userValues.join(',')}`,
+                userParams
+            );
+
+            const firstId = insertResult.insertId;
+
+            // Cast votes for each simulated user
+            for (let i = 0; i < thisBatch; i++) {
+                const userId = firstId + i;
+                // Retrieve the user's state/zone/gender/age for vote metadata
+                const stateInfo = NIGERIAN_STATES[Math.floor(Math.random() * NIGERIAN_STATES.length)];
+                const gender = Math.random() < 0.5 ? 'male' : 'female';
+                const age = 18 + Math.floor(Math.random() * 52);
+
+                for (const type of Object.keys(byType)) {
+                    const cands = byType[type];
+                    // Weighted random pick
+                    let rand = Math.random();
+                    let chosen = cands[cands.length - 1];
+                    for (const c of cands) {
+                        rand -= c.weight;
+                        if (rand <= 0) { chosen = c; break; }
+                    }
+
+                    // Random cast time within last 60 minutes
+                    const minutesAgo = Math.floor(Math.random() * 60);
+                    const castAt = new Date(Date.now() - minutesAgo * 60000);
+
+                    try {
+                        await db.query(
+                            `INSERT INTO votes (user_id, candidate_id, election_type, user_state, user_zone, user_gender, user_age, cast_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                            [userId, chosen.id, type, stateInfo.name, stateInfo.zone, gender, age, castAt]
+                        );
+                        totalVotes++;
+                    } catch (e) {
+                        // Skip duplicate vote errors
+                    }
+                }
+            }
+        }
+
+        return res.json({
+            message: 'Simulation complete',
+            voters_created: count,
+            votes_cast: totalVotes,
+            election_types: Object.keys(byType),
+        });
+    } catch (err) {
+        return res.status(500).json({ error: 'Simulation failed', details: err.message });
+    }
+});
+
+// DELETE /admin/simulate  — clear all simulated voters + their votes
+router.delete('/simulate', async (req, res) => {
+    try {
+        // Delete votes from non-admin, sim-generated users (those with phone starting +2347)
+        await db.query(`DELETE v FROM votes v JOIN users u ON v.user_id = u.id WHERE u.is_admin = 0 AND u.phone LIKE '+2347%'`);
+        const [delResult] = await db.query(`DELETE FROM users WHERE is_admin = 0 AND phone LIKE '+2347%'`);
+        return res.json({ message: 'Simulation data cleared', voters_removed: delResult.affectedRows });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to clear simulation', details: err.message });
+    }
+});
+
+// ── VOTE AUDIT LOG ──────────────────────────────────
+// GET /admin/vote-log?page=1&limit=50&type=presidential
+router.get('/vote-log', async (req, res) => {
+    try {
+        const { page = 1, limit = 50, type } = req.query;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+        let query = `SELECT v.id, v.election_type, v.user_state, v.user_zone, v.user_gender, v.user_age, v.cast_at,
+                     u.full_name AS voter_name, c.full_name AS candidate_name, p.abbreviation AS party
+                     FROM votes v
+                     JOIN users u ON v.user_id = u.id
+                     JOIN candidates c ON v.candidate_id = c.id
+                     JOIN parties p ON c.party_id = p.id`;
+        const params = [];
+        if (type) { query += ' WHERE v.election_type = ?'; params.push(type); }
+        query += ' ORDER BY v.cast_at DESC LIMIT ? OFFSET ?';
+        params.push(parseInt(limit), offset);
+        const [rows] = await db.query(query, params);
+
+        let countQuery = 'SELECT COUNT(*) AS total FROM votes';
+        const countParams = [];
+        if (type) { countQuery += ' WHERE election_type = ?'; countParams.push(type); }
+        const [[{ total }]] = await db.query(countQuery, countParams);
+
+        return res.json({ votes: rows, total: Number(total), page: parseInt(page) });
+    } catch (err) {
+        return res.status(500).json({ error: 'Server error', details: err.message });
+    }
+});
+
 module.exports = router;

@@ -223,4 +223,28 @@ class ApiService {
   Future<void> deleteUser(int id) async {
     await _dio.delete('/admin/users/$id');
   }
+
+  // ── SIMULATION ──────────────────────────────────────
+  Future<Map<String, dynamic>> runSimulation({int voterCount = 500, List<String>? electionTypes}) async {
+    final res = await _dio.post('/admin/simulate', data: {
+      'voter_count': voterCount,
+      'election_types': electionTypes ?? ['presidential'],
+    });
+    return res.data;
+  }
+
+  Future<Map<String, dynamic>> clearSimulation() async {
+    final res = await _dio.delete('/admin/simulate');
+    return res.data;
+  }
+
+  // ── VOTE AUDIT LOG ──────────────────────────────────
+  Future<Map<String, dynamic>> getVoteLog({int page = 1, int limit = 50, String? type}) async {
+    final res = await _dio.get('/admin/vote-log', queryParameters: {
+      'page': page,
+      'limit': limit,
+      if (type != null) 'type': type,
+    });
+    return res.data;
+  }
 }
