@@ -49,7 +49,10 @@ final routerNotifierProvider = ChangeNotifierProvider<RouterNotifier>(
 /// The router is created ONCE and never rebuilt.
 /// Auth-triggered redirects happen via refreshListenable.
 final routerProvider = Provider<GoRouter>((ref) {
-  final notifier = ref.watch(routerNotifierProvider);
+  // ref.READ not ref.watch — GoRouter must be created exactly once.
+  // The notifier's refreshListenable causes redirect() to re-run on auth
+  // changes without ever rebuilding the router itself.
+  final notifier = ref.read(routerNotifierProvider);
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: notifier,
