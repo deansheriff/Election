@@ -212,4 +212,37 @@ router.get('/notifications', async (req, res) => {
     }
 });
 
+// ── SMTP SETTINGS ──────────────────────────────────
+// PUT /admin/smtp-settings  — persists SMTP credentials to smtp.json
+const fs = require('fs');
+const path = require('path');
+const smtpConfigPath = path.join(__dirname, '../../smtp.json');
+
+router.put('/smtp-settings', (req, res) => {
+    try {
+        const { host, port, user, pass, from } = req.body;
+        if (!host || !user || !pass) {
+            return res.status(400).json({ error: 'host, user, and pass are required' });
+        }
+        const config = { host, port: parseInt(port) || 587, user, pass, from: from || user };
+        fs.writeFileSync(smtpConfigPath, JSON.stringify(config, null, 2), 'utf8');
+        return res.json({ message: 'SMTP settings saved. Emails will now be sent via this server.' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to save SMTP settings', details: err.message });
+    }
+});
+
+// GET /admin/smtp-settings  — returns current settings (password masked)
+router.get('/smtp-settings', (req, res) => {
+    try {
+        if (!fs.existsSync(smtpConfigPath)) {
+            return res.json({ configured: false });
+        }
+        const cfg = JSON.parse(fs.readFileSync(smtpConfigPath, 'utf8'));
+        return res.json({ configured: true, host: cfg.host, port: cfg.port, user: cfg.user, from: cfg.from });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to read SMTP settings' });
+    }
+});
+
 module.exports = router;
