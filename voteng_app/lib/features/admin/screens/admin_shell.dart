@@ -16,10 +16,11 @@ class AdminShell extends ConsumerStatefulWidget {
 class _AdminShellState extends ConsumerState<AdminShell> {
   int _navIdx = 0;
 
-  final List<String> _titles = ['Dashboard', 'Candidates', 'Election Config', 'Users', 'Notifications', 'SMTP Settings'];
+  final List<String> _titles = ['Dashboard', 'Candidates', 'Parties', 'Election Config', 'Users', 'Notifications', 'SMTP Settings'];
   final List<IconData> _icons = [
-    Icons.dashboard_outlined, Icons.people_outline, Icons.settings_outlined,
-    Icons.manage_accounts_outlined, Icons.notifications_outlined, Icons.email_outlined,
+    Icons.dashboard_outlined, Icons.people_outline, Icons.groups_outlined,
+    Icons.settings_outlined, Icons.manage_accounts_outlined,
+    Icons.notifications_outlined, Icons.email_outlined,
   ];
 
   @override
@@ -35,6 +36,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     final pages = [
       const _AdminDashboardPage(),
       const _AdminCandidatesPage(),
+      const _AdminPartiesPage(),
       const _ElectionConfigPage(),
       const _AdminUsersPage(),
       const _NotificationsPage(),
@@ -54,32 +56,39 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           const SizedBox(width: 8),
         ],
       ),
-      drawer: NavigationDrawer(
-        selectedIndex: _navIdx,
-        onDestinationSelected: (i) { setState(() => _navIdx = i); Navigator.pop(context); },
-        children: [
-          const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('VoteNG 2027', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.green)),
-              Text('Admin Control Panel', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            ]),
-          ),
-          const SizedBox(height: 8),
-          const Divider(),
-          ...List.generate(_titles.length, (i) => NavigationDrawerDestination(
-            icon: Icon(_icons[i]),
-            label: Text(_titles[i]),
-          )),
-        ],
+      drawer: Drawer(
+        backgroundColor: AppColors.surface,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: AppColors.surfaceElevated),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
+                const Icon(Icons.admin_panel_settings, color: AppColors.green, size: 36),
+                const SizedBox(height: 8),
+                Text('Admin Panel', style: Theme.of(context).textTheme.headlineMedium),
+                Text(auth.user?.fullName ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              ]),
+            ),
+            for (int i = 0; i < _titles.length; i++)
+              ListTile(
+                leading: Icon(_icons[i], color: _navIdx == i ? AppColors.green : AppColors.textMuted),
+                title: Text(_titles[i], style: TextStyle(color: _navIdx == i ? AppColors.green : AppColors.textPrimary)),
+                selected: _navIdx == i,
+                selectedTileColor: AppColors.green.withOpacity(0.08),
+                onTap: () { setState(() => _navIdx = i); Navigator.pop(context); },
+              ),
+          ],
+        ),
       ),
       body: pages[_navIdx],
     );
   }
 }
 
+// ═══════════════════════════════════════════════════════
 // ── Dashboard Overview
+// ═══════════════════════════════════════════════════════
 class _AdminDashboardPage extends ConsumerWidget {
   const _AdminDashboardPage();
 
@@ -137,7 +146,9 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-// ── Candidates Management
+// ═══════════════════════════════════════════════════════
+// ── Candidates Management (with Edit + Delete)
+// ═══════════════════════════════════════════════════════
 class _AdminCandidatesPage extends ConsumerWidget {
   const _AdminCandidatesPage();
 
@@ -155,9 +166,9 @@ class _AdminCandidatesPage extends ConsumerWidget {
               Expanded(child: Text('${candidates.length} candidates', style: Theme.of(context).textTheme.bodyMedium)),
               ElevatedButton.icon(
                 icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add Candidate'),
+                label: const Text('Add'),
                 style: ElevatedButton.styleFrom(minimumSize: const Size(0, 40)),
-                onPressed: () => _showAddDialog(context, ref),
+                onPressed: () => _showCandidateDialog(context, ref, null),
               ),
             ]),
           ),
@@ -172,16 +183,15 @@ class _AdminCandidatesPage extends ConsumerWidget {
                   leading: CircleAvatar(backgroundColor: color.withOpacity(0.2),
                       child: Text(c['full_name'][0], style: TextStyle(color: color, fontWeight: FontWeight.w700))),
                   title: Text(c['full_name'] ?? ''),
-                  subtitle: Text('${kElectionTypeLabels[c['election_type']] ?? c['election_type']} • ${c['party_abbr'] ?? ''}'),
+                  subtitle: Text('${kElectionTypeLabels[c['election_type']] ?? c['election_type']} • ${c['party_abbr'] ?? c['abbreviation'] ?? ''}'),
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                    IconButton(icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary), onPressed: () {}),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
+                      onPressed: () => _showCandidateDialog(context, ref, c),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline, color: AppColors.pdpRed),
-                      onPressed: () async {
-                        final api = ref.read(apiServiceProvider);
-                        await api.deleteCandidate(c['id']);
-                        ref.invalidate(adminCandidatesProvider);
-                      },
+                      onPressed: () => _confirmDelete(context, ref, c),
                     ),
                   ]),
                 );
@@ -193,58 +203,328 @@ class _AdminCandidatesPage extends ConsumerWidget {
     );
   }
 
-  void _showAddDialog(BuildContext context, WidgetRef ref) {
-    showDialog(context: context, builder: (_) => const _AddCandidateDialog());
+  void _showCandidateDialog(BuildContext context, WidgetRef ref, Map<String, dynamic>? existing) {
+    showDialog(context: context, builder: (_) => _CandidateFormDialog(existing: existing));
   }
-}
 
-class _AddCandidateDialog extends ConsumerStatefulWidget {
-  const _AddCandidateDialog();
-
-  @override
-  ConsumerState<_AddCandidateDialog> createState() => _AddCandidateDialogState();
-}
-
-class _AddCandidateDialogState extends ConsumerState<_AddCandidateDialog> {
-  final _nameCtrl = TextEditingController();
-  String _type = 'presidential';
-  int _partyId = 1;
-  bool _loading = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: AppColors.surfaceElevated,
-      title: const Text('Add Candidate'),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
-          value: _type,
-          dropdownColor: AppColors.surfaceElevated,
-          decoration: const InputDecoration(labelText: 'Election Type'),
-          items: kElectionTypes.map((t) => DropdownMenuItem(value: t, child: Text(kElectionTypeLabels[t] ?? t))).toList(),
-          onChanged: (v) => setState(() => _type = v!),
-        ),
-      ]),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        ElevatedButton(
-          onPressed: _loading ? null : () async {
-            setState(() => _loading = true);
-            final api = ref.read(apiServiceProvider);
-            await api.addCandidate({'full_name': _nameCtrl.text, 'party_id': _partyId, 'election_type': _type});
-            ref.invalidate(adminCandidatesProvider);
-            if (context.mounted) Navigator.pop(context);
-          },
-          child: const Text('Add'),
-        ),
-      ],
+  void _confirmDelete(BuildContext context, WidgetRef ref, Map<String, dynamic> c) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        title: const Text('Delete Candidate?'),
+        content: Text('Remove ${c['full_name']}? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.pdpRed),
+            onPressed: () async {
+              final api = ref.read(apiServiceProvider);
+              await api.deleteCandidate(c['id']);
+              ref.invalidate(adminCandidatesProvider);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 }
 
+class _CandidateFormDialog extends ConsumerStatefulWidget {
+  final Map<String, dynamic>? existing;
+  const _CandidateFormDialog({this.existing});
+
+  @override
+  ConsumerState<_CandidateFormDialog> createState() => _CandidateFormDialogState();
+}
+
+class _CandidateFormDialogState extends ConsumerState<_CandidateFormDialog> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _bioCtrl;
+  late final TextEditingController _ageCtrl;
+  late final TextEditingController _runningMateCtrl;
+  late String _type;
+  int? _partyId;
+  bool _isIncumbent = false;
+  bool _loading = false;
+
+  bool get _isEdit => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _nameCtrl = TextEditingController(text: e?['full_name'] ?? '');
+    _bioCtrl = TextEditingController(text: e?['bio'] ?? '');
+    _ageCtrl = TextEditingController(text: e?['age']?.toString() ?? '');
+    _runningMateCtrl = TextEditingController(text: e?['running_mate_name'] ?? '');
+    _type = e?['election_type'] ?? 'presidential';
+    _partyId = e?['party_id'];
+    _isIncumbent = e?['is_incumbent'] == 1 || e?['is_incumbent'] == true;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final partiesAsync = ref.watch(adminPartiesProvider);
+    return AlertDialog(
+      backgroundColor: AppColors.surfaceElevated,
+      title: Text(_isEdit ? 'Edit Candidate' : 'Add Candidate'),
+      content: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _type,
+            dropdownColor: AppColors.surfaceElevated,
+            decoration: const InputDecoration(labelText: 'Election Type'),
+            items: kElectionTypes.map((t) => DropdownMenuItem(value: t, child: Text(kElectionTypeLabels[t] ?? t))).toList(),
+            onChanged: (v) => setState(() => _type = v!),
+          ),
+          const SizedBox(height: 12),
+          partiesAsync.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (e, _) => Text('Error loading parties: $e'),
+            data: (parties) {
+              if (_partyId == null && parties.isNotEmpty) _partyId = parties[0]['id'];
+              return DropdownButtonFormField<int>(
+                value: _partyId,
+                dropdownColor: AppColors.surfaceElevated,
+                decoration: const InputDecoration(labelText: 'Party'),
+                items: parties.map<DropdownMenuItem<int>>((p) =>
+                    DropdownMenuItem(value: p['id'] as int, child: Text('${p['abbreviation']} — ${p['name']}'))).toList(),
+                onChanged: (v) => setState(() => _partyId = v),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          TextField(controller: _runningMateCtrl, decoration: const InputDecoration(labelText: 'Running Mate (optional)')),
+          const SizedBox(height: 12),
+          TextField(controller: _ageCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Age (optional)')),
+          const SizedBox(height: 12),
+          TextField(controller: _bioCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Bio (optional)')),
+          const SizedBox(height: 8),
+          CheckboxListTile(
+            value: _isIncumbent,
+            title: const Text('Incumbent'),
+            onChanged: (v) => setState(() => _isIncumbent = v!),
+            controlAffinity: ListTileControlAffinity.leading,
+            contentPadding: EdgeInsets.zero,
+          ),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: _loading ? null : _submit,
+          child: Text(_isEdit ? 'Save' : 'Add'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submit() async {
+    if (_nameCtrl.text.trim().isEmpty || _partyId == null) return;
+    setState(() => _loading = true);
+    final api = ref.read(apiServiceProvider);
+    final data = {
+      'full_name': _nameCtrl.text.trim(),
+      'party_id': _partyId,
+      'election_type': _type,
+      'running_mate_name': _runningMateCtrl.text.trim().isNotEmpty ? _runningMateCtrl.text.trim() : null,
+      'age': int.tryParse(_ageCtrl.text),
+      'bio': _bioCtrl.text.trim().isNotEmpty ? _bioCtrl.text.trim() : null,
+      'is_incumbent': _isIncumbent,
+    };
+    if (_isEdit) {
+      await api.updateCandidate(widget.existing!['id'], data);
+    } else {
+      await api.addCandidate(data);
+    }
+    ref.invalidate(adminCandidatesProvider);
+    if (mounted) Navigator.pop(context);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// ── Parties Management (full CRUD)
+// ═══════════════════════════════════════════════════════
+class _AdminPartiesPage extends ConsumerWidget {
+  const _AdminPartiesPage();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final partiesAsync = ref.watch(adminPartiesProvider);
+    return partiesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (parties) => Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              Expanded(child: Text('${parties.length} parties', style: Theme.of(context).textTheme.bodyMedium)),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add Party'),
+                style: ElevatedButton.styleFrom(minimumSize: const Size(0, 40)),
+                onPressed: () => _showPartyDialog(context, ref, null),
+              ),
+            ]),
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: parties.length,
+              itemBuilder: (ctx, i) {
+                final p = parties[i];
+                final hex = (p['color_hex'] ?? '#008751').replaceAll('#', '');
+                final color = Color(int.parse('0xFF$hex'));
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: color,
+                    child: Text(p['abbreviation']?[0] ?? '', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
+                  title: Text(p['name'] ?? ''),
+                  subtitle: Text(p['abbreviation'] ?? ''),
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
+                      onPressed: () => _showPartyDialog(context, ref, p),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: AppColors.pdpRed),
+                      onPressed: () => _confirmDelete(context, ref, p),
+                    ),
+                  ]),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showPartyDialog(BuildContext context, WidgetRef ref, Map<String, dynamic>? existing) {
+    showDialog(context: context, builder: (_) => _PartyFormDialog(existing: existing));
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref, Map<String, dynamic> p) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        title: const Text('Delete Party?'),
+        content: Text('Remove ${p['name']}? Candidates under this party will lose their party link.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.pdpRed),
+            onPressed: () async {
+              final api = ref.read(apiServiceProvider);
+              await api.deleteParty(p['id']);
+              ref.invalidate(adminPartiesProvider);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PartyFormDialog extends ConsumerStatefulWidget {
+  final Map<String, dynamic>? existing;
+  const _PartyFormDialog({this.existing});
+
+  @override
+  ConsumerState<_PartyFormDialog> createState() => _PartyFormDialogState();
+}
+
+class _PartyFormDialogState extends ConsumerState<_PartyFormDialog> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _abbrCtrl;
+  late final TextEditingController _colorCtrl;
+  late final TextEditingController _manifestoCtrl;
+  bool _loading = false;
+
+  bool get _isEdit => widget.existing != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existing;
+    _nameCtrl = TextEditingController(text: e?['name'] ?? '');
+    _abbrCtrl = TextEditingController(text: e?['abbreviation'] ?? '');
+    _colorCtrl = TextEditingController(text: e?['color_hex'] ?? '#008751');
+    _manifestoCtrl = TextEditingController(text: e?['manifesto'] ?? '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final previewHex = _colorCtrl.text.replaceAll('#', '');
+    Color previewColor;
+    try { previewColor = Color(int.parse('0xFF$previewHex')); } catch (_) { previewColor = AppColors.green; }
+
+    return AlertDialog(
+      backgroundColor: AppColors.surfaceElevated,
+      title: Text(_isEdit ? 'Edit Party' : 'Add Party'),
+      content: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Party Name')),
+          const SizedBox(height: 12),
+          TextField(controller: _abbrCtrl, decoration: const InputDecoration(labelText: 'Abbreviation (e.g. APC)')),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _colorCtrl,
+                decoration: const InputDecoration(labelText: 'Color Hex (e.g. #008751)'),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(width: 40, height: 40, decoration: BoxDecoration(color: previewColor, borderRadius: BorderRadius.circular(8))),
+          ]),
+          const SizedBox(height: 12),
+          TextField(controller: _manifestoCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Manifesto (optional)')),
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(
+          onPressed: _loading ? null : _submit,
+          child: Text(_isEdit ? 'Save' : 'Add'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _submit() async {
+    if (_nameCtrl.text.trim().isEmpty || _abbrCtrl.text.trim().isEmpty) return;
+    setState(() => _loading = true);
+    final api = ref.read(apiServiceProvider);
+    final data = {
+      'name': _nameCtrl.text.trim(),
+      'abbreviation': _abbrCtrl.text.trim().toUpperCase(),
+      'color_hex': _colorCtrl.text.trim(),
+      'manifesto': _manifestoCtrl.text.trim().isNotEmpty ? _manifestoCtrl.text.trim() : null,
+    };
+    if (_isEdit) {
+      await api.updateParty(widget.existing!['id'], data);
+    } else {
+      await api.addParty(data);
+    }
+    ref.invalidate(adminPartiesProvider);
+    if (mounted) Navigator.pop(context);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // ── Election Config
+// ═══════════════════════════════════════════════════════
 class _ElectionConfigPage extends ConsumerWidget {
   const _ElectionConfigPage();
 
@@ -298,40 +578,115 @@ class _ElectionConfigPage extends ConsumerWidget {
   }
 }
 
-// ── Users
-class _AdminUsersPage extends ConsumerWidget {
+// ═══════════════════════════════════════════════════════
+// ── Users (with Flag/Unflag + Delete)
+// ═══════════════════════════════════════════════════════
+class _AdminUsersPage extends ConsumerStatefulWidget {
   const _AdminUsersPage();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return FutureBuilder(
-      future: ref.read(apiServiceProvider).getAdminUsers(),
-      builder: (ctx, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator());
-        final users = snap.data!['users'] as List<dynamic>? ?? [];
-        return ListView.builder(
-          itemCount: users.length,
-          itemBuilder: (ctx, i) {
-            final u = users[i];
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: AppColors.green.withOpacity(0.1),
-                child: Text(u['full_name'][0], style: const TextStyle(color: AppColors.green)),
+  ConsumerState<_AdminUsersPage> createState() => _AdminUsersPageState();
+}
+
+class _AdminUsersPageState extends ConsumerState<_AdminUsersPage> {
+  List<dynamic>? _users;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    final data = await ref.read(apiServiceProvider).getAdminUsers();
+    if (mounted) setState(() { _users = data['users'] as List<dynamic>? ?? []; _loading = false; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    final users = _users ?? [];
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.builder(
+        itemCount: users.length,
+        itemBuilder: (ctx, i) {
+          final u = users[i];
+          final isFlagged = u['is_flagged'] == 1 || u['is_flagged'] == true;
+          final isAdmin = u['is_admin'] == 1 || u['is_admin'] == true;
+          return ListTile(
+            leading: CircleAvatar(
+              backgroundColor: isFlagged ? AppColors.pdpRed.withOpacity(0.15) : AppColors.green.withOpacity(0.1),
+              child: Text(
+                (u['full_name'] ?? '?')[0],
+                style: TextStyle(color: isFlagged ? AppColors.pdpRed : AppColors.green, fontWeight: FontWeight.w700),
               ),
-              title: Text(u['full_name']),
-              subtitle: Text('${u['state']} • ${u['phone']}'),
-              trailing: u['is_flagged'] == 1
-                  ? const Icon(Icons.flag_rounded, color: AppColors.pdpRed)
-                  : null,
-            );
-          },
-        );
-      },
+            ),
+            title: Row(children: [
+              Flexible(child: Text(u['full_name'] ?? '', overflow: TextOverflow.ellipsis)),
+              if (isAdmin) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(color: AppColors.gold.withOpacity(0.15), borderRadius: BorderRadius.circular(4)),
+                  child: const Text('ADMIN', style: TextStyle(color: AppColors.gold, fontSize: 9, fontWeight: FontWeight.w800)),
+                ),
+              ],
+            ]),
+            subtitle: Text('${u['state'] ?? ''} • ${u['phone'] ?? u['email'] ?? ''}', style: const TextStyle(fontSize: 12)),
+            trailing: isAdmin ? null : Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(
+                tooltip: isFlagged ? 'Unflag' : 'Flag',
+                icon: Icon(
+                  isFlagged ? Icons.flag_rounded : Icons.flag_outlined,
+                  color: isFlagged ? AppColors.pdpRed : AppColors.textMuted,
+                ),
+                onPressed: () async {
+                  await ref.read(apiServiceProvider).flagUser(u['id'], !isFlagged);
+                  _load();
+                },
+              ),
+              IconButton(
+                tooltip: 'Delete user',
+                icon: const Icon(Icons.delete_outline, color: AppColors.pdpRed),
+                onPressed: () => _confirmDeleteUser(u),
+              ),
+            ]),
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmDeleteUser(Map<String, dynamic> u) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surfaceElevated,
+        title: const Text('Delete User?'),
+        content: Text('Permanently delete ${u['full_name']} and all their votes? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.pdpRed),
+            onPressed: () async {
+              await ref.read(apiServiceProvider).deleteUser(u['id']);
+              if (context.mounted) Navigator.pop(context);
+              _load();
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 }
 
+// ═══════════════════════════════════════════════════════
 // ── Notifications
+// ═══════════════════════════════════════════════════════
 class _NotificationsPage extends ConsumerStatefulWidget {
   const _NotificationsPage();
 
@@ -379,6 +734,10 @@ class _NotificationsPageState extends ConsumerState<_NotificationsPage> {
     );
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// ── SMTP Settings
+// ═══════════════════════════════════════════════════════
 class _SmtpSettingsPage extends ConsumerStatefulWidget {
   const _SmtpSettingsPage();
   @override
@@ -447,7 +806,7 @@ class _SmtpSettingsPageState extends ConsumerState<_SmtpSettingsPage> {
                 const SizedBox(height: 16),
                 _field(_fromCtrl, 'From Address', 'no-reply@voteng.ng', Icons.alternate_email_outlined),
                 const SizedBox(height: 24),
-                if (_statusMsg != null) ...[  
+                if (_statusMsg != null) ...[
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -469,28 +828,6 @@ class _SmtpSettingsPageState extends ConsumerState<_SmtpSettingsPage> {
                       : const Icon(Icons.save_outlined),
                   label: Text(_saving ? 'Saving...' : 'Save SMTP Settings'),
                   onPressed: _saving ? null : _save,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.07),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.gold.withOpacity(0.2)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.info_outline, color: AppColors.gold, size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'For Gmail: enable 2FA then generate an App Password at myaccount.google.com/apppasswords and use it here.\n\nSettings are saved to the server environment and take effect on next API startup.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.gold, fontSize: 12),
-                  ),
                 ),
               ],
             ),
@@ -528,7 +865,7 @@ class _SmtpSettingsPageState extends ConsumerState<_SmtpSettingsPage> {
         'pass': _passCtrl.text,
         'from': _fromCtrl.text.trim().isNotEmpty ? _fromCtrl.text.trim() : _userCtrl.text.trim(),
       });
-      setState(() { _statusMsg = 'SMTP settings saved. Restart the API for changes to take effect.'; _statusOk = true; });
+      setState(() { _statusMsg = 'SMTP settings saved successfully.'; _statusOk = true; });
     } catch (e) {
       setState(() { _statusMsg = 'Failed to save: $e'; _statusOk = false; });
     } finally {

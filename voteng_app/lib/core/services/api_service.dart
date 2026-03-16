@@ -200,4 +200,27 @@ class ApiService {
   Future<void> updateSmtpSettings(Map<String, dynamic> settings) async {
     await _dio.put('/admin/smtp-settings', data: settings);
   }
+
+  // ── ADMIN PARTIES ──────────────────────────────────
+  Future<List<dynamic>> getAdminParties() async {
+    final res = await _dio.get('/admin/parties');
+    return res.data['parties'];
+  }
+
+  Future<void> addParty(Map<String, dynamic> data) async {
+    await _dio.post('/admin/parties', data: data);
+  }
+
+  Future<void> updateParty(int id, Map<String, dynamic> data) async {
+    await _dio.put('/admin/parties/$id', data: data);
+  }
+
+  Future<void> deleteParty(int id) async {
+    await _dio.delete('/admin/parties/$id');
+  }
+
+  // ── ADMIN USER DELETE ──────────────────────────────
+  Future<void> deleteUser(int id) async {
+    await _dio.delete('/admin/users/$id');
+  }
 }

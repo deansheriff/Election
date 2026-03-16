@@ -167,3 +167,8 @@ final adminCandidatesProvider = FutureProvider<List<dynamic>>((ref) async {
   final data = await api.getCandidates();
   return data;
 });
+
+final adminPartiesProvider = FutureProvider<List<dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return api.getAdminParties();
+});

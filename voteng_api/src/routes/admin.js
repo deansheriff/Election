@@ -91,6 +91,33 @@ router.put('/parties/:id', async (req, res) => {
     }
 });
 
+// POST /admin/parties
+router.post('/parties', async (req, res) => {
+    try {
+        const { name, abbreviation, color_hex, logo_url, manifesto } = req.body;
+        if (!name || !abbreviation || !color_hex) {
+            return res.status(400).json({ error: 'name, abbreviation, and color_hex are required' });
+        }
+        const [result] = await db.query(
+            'INSERT INTO parties (name, abbreviation, color_hex, logo_url, manifesto) VALUES (?, ?, ?, ?, ?)',
+            [name, abbreviation, color_hex, logo_url || null, manifesto || null]
+        );
+        return res.status(201).json({ message: 'Party created', id: result.insertId });
+    } catch (err) {
+        return res.status(500).json({ error: 'Server error', details: err.message });
+    }
+});
+
+// DELETE /admin/parties/:id
+router.delete('/parties/:id', async (req, res) => {
+    try {
+        await db.query('DELETE FROM parties WHERE id = ?', [req.params.id]);
+        return res.json({ message: 'Party deleted' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Server error' });
+    }
+});
+
 // ── ELECTION CONFIG ──────────────────────────────────────
 // GET /admin/election-config
 router.get('/election-config', async (req, res) => {
@@ -164,6 +191,25 @@ router.put('/users/:id/flag', async (req, res) => {
         return res.json({ message: `User ${flagged ? 'flagged' : 'unflagged'}` });
     } catch (err) {
         return res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// DELETE /admin/users/:id
+router.delete('/users/:id', async (req, res) => {
+    try {
+        // Safety: don't allow deleting yourself or other admins
+        if (parseInt(req.params.id) === req.user.id) {
+            return res.status(400).json({ error: 'Cannot delete your own account' });
+        }
+        const [[target]] = await db.query('SELECT is_admin FROM users WHERE id = ?', [req.params.id]);
+        if (target && target.is_admin) {
+            return res.status(400).json({ error: 'Cannot delete admin accounts' });
+        }
+        await db.query('DELETE FROM votes WHERE user_id = ?', [req.params.id]);
+        await db.query('DELETE FROM users WHERE id = ?', [req.params.id]);
+        return res.json({ message: 'User deleted' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Server error', details: err.message });
     }
 });
 
