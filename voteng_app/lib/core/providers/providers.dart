@@ -78,7 +78,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final data = await _api.login(phone, password);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', data['token']);
-      state = AuthState(token: data['token'], user: User.fromJson(data['user']));
+      state = AuthState(token: data['token'], user: User.fromJson(data['user']), isInitialising: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _parseError(e));
       rethrow;
@@ -88,7 +88,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
-    state = const AuthState();
+    state = const AuthState(isInitialising: false);
   }
 
   String _parseError(dynamic e) {
