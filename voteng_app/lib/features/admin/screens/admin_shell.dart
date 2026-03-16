@@ -35,7 +35,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     }
 
     final pages = [
-      const _AdminDashboardPage(),
+      const _AdminCandidatesPage(),
       const _AdminCandidatesPage(),
       const _AdminPartiesPage(),
       const _ElectionConfigPage(),
@@ -104,25 +104,28 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           // ── Main Content ──
           Expanded(
             child: Column(children: [
-              // Top bar
+              // Top bar (matching UI Top padding only px-8 py-6)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                padding: const EdgeInsets.fromLTRB(32, 24, 32, 24),
                 child: Row(children: [
-                  Text(_titles[_navIdx], style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                  Text(
+                    _navIdx == 1 ? 'Candidates Overview' : _titles[_navIdx],
+                    style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.notifications_outlined, color: AppColors.textMuted),
                     onPressed: () {},
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 16),
                   Container(
-                    width: 34, height: 34,
+                    width: 36, height: 36,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceElevated,
-                      borderRadius: BorderRadius.circular(17),
+                      borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: AppColors.borderDark),
                     ),
-                    child: const Icon(Icons.person_outline, color: AppColors.textMuted, size: 18),
+                    child: const Icon(Icons.person_outline, color: AppColors.textMuted, size: 20),
                   ),
                 ]),
               ),
@@ -241,52 +244,312 @@ class _AdminCandidatesPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final candidatesAsync = ref.watch(adminCandidatesProvider);
-    return candidatesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (candidates) => Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(children: [
-              Expanded(child: Text('${candidates.length} candidates', style: Theme.of(context).textTheme.bodyMedium)),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text('Add'),
-                style: ElevatedButton.styleFrom(minimumSize: const Size(0, 40)),
-                onPressed: () => _showCandidateDialog(context, ref, null),
-              ),
-            ]),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: candidates.length,
-              itemBuilder: (ctx, i) {
-                final c = candidates[i];
-                final colorHex = c['party_color'] ?? c['color_hex'] ?? '#008751';
-                final color = Color(int.parse('0xFF${colorHex.replaceAll('#', '')}'));
-                return ListTile(
-                  leading: CircleAvatar(backgroundColor: color.withOpacity(0.2),
-                      child: Text(c['full_name'][0], style: TextStyle(color: color, fontWeight: FontWeight.w700))),
-                  title: Text(c['full_name'] ?? ''),
-                  subtitle: Text('${kElectionTypeLabels[c['election_type']] ?? c['election_type']} • ${c['party_abbr'] ?? c['abbreviation'] ?? ''}'),
-                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
-                      onPressed: () => _showCandidateDialog(context, ref, c),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, color: AppColors.pdpRed),
-                      onPressed: () => _confirmDelete(context, ref, c),
-                    ),
-                  ]),
-                );
-              },
+    final statsAsync = ref.watch(adminStatsProvider);
+    final configAsync = ref.watch(electionConfigProvider);
+
+    return Column(
+      children: [
+        // ── Stats Grid (Matches UI: grid-cols-4) ──
+        statsAsync.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (stats) => Padding(
+            padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+            child: Row(
+              children: [
+                _StatCard('Total Voters', _fmt(stats['total_registered'] ?? 0)),
+                const SizedBox(width: 16),
+                _StatCard('Votes Cast', _fmt(stats['total_votes_cast'] ?? 0)),
+                const SizedBox(width: 16),
+                _StatCard('Open Tiers', '${(stats['open_tiers'] as List?)?.length ?? 0}'),
+                const SizedBox(width: 16),
+                _StatCard('Flagged Activities', '${stats['flagged_accounts'] ?? 0}', isRed: true),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+
+        // ── Main Content Area (Table + Right Panel) ──
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left side: Main Table Area
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.borderDark),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Table Toolbar
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.borderDark))),
+                          child: Row(
+                            children: [
+                              // Search
+                              Container(
+                                width: 256,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgDark,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFF2E6B53)), // Matched UI search border
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.search, color: AppColors.textMuted, size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: TextField(
+                                        style: const TextStyle(fontSize: 14, color: Colors.white),
+                                        decoration: InputDecoration(
+                                          hintText: 'Search candidates...',
+                                          hintStyle: const TextStyle(color: AppColors.textMuted),
+                                          border: InputBorder.none,
+                                          enabledBorder: InputBorder.none,
+                                          focusedBorder: InputBorder.none,
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              // Filter Button
+                              Container(
+                                width: 38, height: 38,
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: const Color(0xFF2E6B53)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.filter_list, color: AppColors.textSecondary, size: 20),
+                              ),
+                              const Spacer(),
+                              // Add Candidate Button
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.add, size: 20),
+                                label: const Text('Add Candidate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                onPressed: () => _showCandidateDialog(context, ref, null),
+                                style: ElevatedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                                  minimumSize: const Size(0, 38),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Table Header & Body
+                        Expanded(
+                          child: candidatesAsync.when(
+                            loading: () => const Center(child: CircularProgressIndicator()),
+                            error: (e, _) => Center(child: Text('Error: $e')),
+                            data: (candidates) => Column(
+                              children: [
+                                // Header
+                                Container(
+                                  color: AppColors.hoverBg, // #173629
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(width: 64, child: Text('PHOTO', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                                      const Expanded(flex: 2, child: Text('NAME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                                      const Expanded(flex: 1, child: Text('PARTY', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                                      const Expanded(flex: 2, child: Text('ELECTION TYPE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                                      const Expanded(flex: 1, child: Text('STATE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary))),
+                                      const SizedBox(width: 80, child: Align(alignment: Alignment.centerRight, child: Text('ACTION', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)))),
+                                    ],
+                                  ),
+                                ),
+                                const Divider(height: 1, color: AppColors.borderDark),
+                                // Body
+                                Expanded(
+                                  child: ListView.separated(
+                                    itemCount: candidates.length,
+                                    separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.borderDark),
+                                    itemBuilder: (ctx, i) {
+                                      final c = candidates[i];
+                                      final colorHex = c['party_color'] ?? c['color_hex'] ?? '#008751';
+                                      final color = Color(int.parse('0xFF${colorHex.replaceAll('#', '')}'));
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(
+                                              width: 64,
+                                              child: CircleAvatar(
+                                                radius: 20,
+                                                backgroundColor: color.withOpacity(0.2),
+                                                child: Text(c['full_name'][0], style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+                                              ),
+                                            ),
+                                            Expanded(flex: 2, child: Text(c['full_name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14))),
+                                            Expanded(
+                                              flex: 1,
+                                              child: Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: color.withOpacity(0.15),
+                                                    borderRadius: BorderRadius.circular(12),
+                                                    border: Border.all(color: color.withOpacity(0.4)),
+                                                  ),
+                                                  child: Text(c['party_abbr'] ?? c['abbreviation'] ?? '',
+                                                      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+                                                ),
+                                              ),
+                                            ),
+                                            Expanded(
+                                              flex: 2,
+                                              child: Align(
+                                                alignment: Alignment.centerLeft,
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(color: AppColors.borderDark, borderRadius: BorderRadius.circular(6)),
+                                                  child: Text(kElectionTypeLabels[c['election_type']] ?? c['election_type'],
+                                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                                ),
+                                              ),
+                                            ),
+                                            const Expanded(flex: 1, child: Text('National', style: TextStyle(color: AppColors.textSecondary, fontSize: 14))),
+                                            SizedBox(
+                                              width: 80,
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.end,
+                                                children: [
+                                                  IconButton(
+                                                    icon: const Icon(Icons.edit, size: 18),
+                                                    color: AppColors.textMuted,
+                                                    hoverColor: AppColors.borderDark,
+                                                    onPressed: () => _showCandidateDialog(context, ref, c),
+                                                    splashRadius: 20,
+                                                    padding: EdgeInsets.zero,
+                                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  IconButton(
+                                                    icon: const Icon(Icons.delete, size: 18),
+                                                    color: AppColors.textMuted,
+                                                    hoverColor: AppColors.borderDark,
+                                                    onPressed: () => _confirmDelete(context, ref, c),
+                                                    splashRadius: 20,
+                                                    padding: EdgeInsets.zero,
+                                                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 24),
+
+                // Right side: Election Tier Status Panel
+                Container(
+                  width: 320,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.borderDark),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Election Tier Status', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: configAsync.when(
+                          loading: () => const Center(child: CircularProgressIndicator()),
+                          error: (e, _) => Text('Error: $e'),
+                          data: (configs) {
+                            return ListView.separated(
+                              itemCount: configs.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 16),
+                              itemBuilder: (ctx, i) {
+                                final cfg = configs[i];
+                                final isOpen = cfg['is_open'] == 1;
+                                return Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.bgDark,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: AppColors.borderDark),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(cfg['election_label'] ?? cfg['election_type'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                          Text('Level', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                        ],
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(isOpen ? 'OPEN' : 'CLOSED', style: TextStyle(color: isOpen ? AppColors.green : AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold)),
+                                          const SizedBox(width: 8),
+                                          Switch(
+                                            value: isOpen,
+                                            onChanged: (v) async {
+                                              await ref.read(apiServiceProvider).updateElectionConfig(cfg['id'], isOpen: v);
+                                              ref.invalidate(electionConfigProvider);
+                                            },
+                                            activeColor: Colors.white,
+                                            activeTrackColor: AppColors.green,
+                                            inactiveThumbColor: AppColors.textSecondary,
+                                            inactiveTrackColor: AppColors.borderDark,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  String _fmt(dynamic n) {
+    final i = (n as num?)?.toInt() ?? 0;
+    if (i >= 1000000) return '${(i / 1000000).toStringAsFixed(1)}M';
+    if (i >= 1000) return '${(i / 1000).toStringAsFixed(1)}K';
+    return i.toString();
   }
 
   void _showCandidateDialog(BuildContext context, WidgetRef ref, Map<String, dynamic>? existing) {

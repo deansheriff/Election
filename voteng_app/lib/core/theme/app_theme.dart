@@ -56,38 +56,93 @@ ThemeData buildAppTheme() {
       tertiary: AppColors.lightGreen,
     ),
     scaffoldBackgroundColor: AppColors.bgDark,
-    textTheme: GoogleFonts.interTextTheme(base.textTheme).copyWith(
-      displayLarge: GoogleFonts.inter(
-        color: AppColors.textPrimary, fontWeight: FontWeight.w800, fontSize: 32,
+    textTheme: GoogleFonts.publicSansTextTheme(base.textTheme).copyWith(
+      displayMedium: GoogleFonts.publicSans(
+        fontSize: 45,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -1.0,
+        color: AppColors.white,
       ),
-      displayMedium: GoogleFonts.inter(
-        color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 26,
+      displaySmall: GoogleFonts.publicSans(
+        fontSize: 36,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.5,
+        color: AppColors.white,
       ),
-      headlineLarge: GoogleFonts.inter(
-        color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 22,
+      headlineLarge: GoogleFonts.publicSans(
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+        color: AppColors.white,
       ),
-      headlineMedium: GoogleFonts.inter(
-        color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 18,
+      headlineMedium: GoogleFonts.publicSans(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.5,
+        color: AppColors.white,
       ),
-      titleLarge: GoogleFonts.inter(
-        color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 16,
+      headlineSmall: GoogleFonts.publicSans(
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        color: AppColors.white,
       ),
-      bodyLarge: GoogleFonts.inter(
-        color: AppColors.textPrimary, fontSize: 16,
+      titleLarge: GoogleFonts.publicSans(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
       ),
-      bodyMedium: GoogleFonts.inter(
-        color: AppColors.textSecondary, fontSize: 14,
+      titleMedium: GoogleFonts.publicSans(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.15,
+        color: AppColors.textPrimary,
       ),
-      labelLarge: GoogleFonts.inter(
+      titleSmall: GoogleFonts.publicSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.1,
+        color: AppColors.textPrimary,
+      ),
+      bodyLarge: GoogleFonts.publicSans(
+        fontSize: 16,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.5,
+        color: AppColors.textPrimary,
+      ),
+      bodyMedium: GoogleFonts.publicSans(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.25,
+        color: AppColors.textPrimary,
+      ),
+      bodySmall: GoogleFonts.publicSans(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        letterSpacing: 0.4,
+        color: AppColors.textSecondary,
+      ),
+      labelLarge: GoogleFonts.publicSans(
         color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 15,
         letterSpacing: 0.5,
+      ),
+      labelMedium: GoogleFonts.publicSans(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+        color: AppColors.textPrimary,
+      ),
+      labelSmall: GoogleFonts.publicSans(
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+        color: AppColors.textPrimary,
       ),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: AppColors.surface,
       elevation: 0,
       centerTitle: false,
-      titleTextStyle: GoogleFonts.inter(
+      titleTextStyle: GoogleFonts.publicSans(
         color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 20,
       ),
       iconTheme: const IconThemeData(color: AppColors.textPrimary),
@@ -101,41 +156,50 @@ ThemeData buildAppTheme() {
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.green,
         foregroundColor: AppColors.white,
-        minimumSize: const Size(double.infinity, 52),
+        textStyle: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16),
+        elevation: 0,
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.green,
-        side: const BorderSide(color: AppColors.green, width: 1.5),
-        minimumSize: const Size(double.infinity, 52),
+        foregroundColor: AppColors.textPrimary,
+        side: const BorderSide(color: AppColors.textMuted),
+        textStyle: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.green,
+        textStyle: GoogleFonts.publicSans(fontWeight: FontWeight.w600, fontSize: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.surfaceElevated,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.textMuted.withOpacity(0.3)),
+        borderSide: const BorderSide(color: AppColors.cardBg),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.textMuted.withOpacity(0.3)),
+        borderSide: const BorderSide(color: AppColors.cardBg),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.green, width: 2),
+        borderSide: const BorderSide(color: AppColors.green),
       ),
-      labelStyle: GoogleFonts.inter(color: AppColors.textSecondary),
-      hintStyle: GoogleFonts.inter(color: AppColors.textMuted),
+      labelStyle: GoogleFonts.publicSans(color: AppColors.textMuted),
+      hintStyle: GoogleFonts.publicSans(color: AppColors.textMuted.withOpacity(0.5)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     ),
     chipTheme: ChipThemeData(
       backgroundColor: AppColors.surfaceElevated,
-      labelStyle: GoogleFonts.inter(color: AppColors.textSecondary, fontSize: 12),
+      labelStyle: GoogleFonts.publicSans(color: AppColors.textSecondary, fontSize: 12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     ),
     navigationBarTheme: NavigationBarThemeData(
@@ -143,16 +207,17 @@ ThemeData buildAppTheme() {
       indicatorColor: AppColors.green.withOpacity(0.2),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return GoogleFonts.inter(color: AppColors.green, fontSize: 12, fontWeight: FontWeight.w600);
+          return GoogleFonts.publicSans(color: AppColors.green, fontSize: 12, fontWeight: FontWeight.w600);
         }
-        return GoogleFonts.inter(color: AppColors.textMuted, fontSize: 12);
+        return GoogleFonts.publicSans(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w500);
       }),
-      iconTheme: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) {
-          return const IconThemeData(color: AppColors.green);
-        }
-        return const IconThemeData(color: AppColors.textMuted);
-      }),
+    ),
+    navigationRailTheme: NavigationRailThemeData(
+      backgroundColor: AppColors.surface,
+      selectedIconTheme: const IconThemeData(color: AppColors.green),
+      unselectedIconTheme: const IconThemeData(color: AppColors.textMuted),
+      selectedLabelTextStyle: GoogleFonts.publicSans(color: AppColors.green, fontSize: 12, fontWeight: FontWeight.w600),
+      unselectedLabelTextStyle: GoogleFonts.publicSans(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w500),
     ),
     dividerTheme: DividerThemeData(
       color: AppColors.textMuted.withOpacity(0.15),
