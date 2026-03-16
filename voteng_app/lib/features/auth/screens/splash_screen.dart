@@ -20,13 +20,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _navigate() async {
-    await Future.delayed(const Duration(milliseconds: 2500));
+    // Show splash for at least 2.5 s, but always wait for the token
+    // check (_loadToken) to finish so we never race against it.
+    await Future.wait([
+      Future.delayed(const Duration(milliseconds: 2500)),
+      _waitForInit(),
+    ]);
     if (!mounted) return;
     final auth = ref.read(authProvider);
     if (auth.isAuthenticated) {
       context.go('/home');
     } else {
       context.go('/onboarding');
+    }
+  }
+
+  Future<void> _waitForInit() async {
+    // Poll until isInitialising becomes false (usually 1 network round-trip)
+    while (ref.read(authProvider).isInitialising) {
+      await Future.delayed(const Duration(milliseconds: 50));
     }
   }
 

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
@@ -8,17 +9,19 @@ class AuthState {
   final User? user;
   final String? token;
   final bool isLoading;
+  final bool isInitialising; // true while _loadToken() is in flight
   final String? error;
 
-  const AuthState({this.user, this.token, this.isLoading = false, this.error});
+  const AuthState({this.user, this.token, this.isLoading = false, this.isInitialising = true, this.error});
 
   bool get isAuthenticated => token != null && user != null;
 
-  AuthState copyWith({User? user, String? token, bool? isLoading, String? error}) {
+  AuthState copyWith({User? user, String? token, bool? isLoading, bool? isInitialising, String? error}) {
     return AuthState(
       user: user ?? this.user,
       token: token ?? this.token,
       isLoading: isLoading ?? this.isLoading,
+      isInitialising: isInitialising ?? this.isInitialising,
       error: error,
     );
   }
@@ -36,11 +39,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (token != null) {
       try {
         final data = await _api.getMe();
-        state = AuthState(token: token, user: User.fromJson(data['user']));
+        state = AuthState(token: token, user: User.fromJson(data['user']), isInitialising: false);
+        return;
       } catch (_) {
         await prefs.remove('auth_token');
       }
     }
+    state = state.copyWith(isInitialising: false);
   }
 
   Future<void> register(Map<String, dynamic> data) async {
@@ -87,6 +92,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   String _parseError(dynamic e) {
+    if (e is DioException) {
+      final msg = e.response?.data;
+      if (msg is Map && msg['error'] != null) return msg['error'].toString();
+      if (msg is Map && msg['message'] != null) return msg['message'].toString();
+      if (msg is String && msg.isNotEmpty) return msg;
+    }
     if (e is Exception) return e.toString().replaceAll('Exception:', '').trim();
     return 'An error occurred';
   }

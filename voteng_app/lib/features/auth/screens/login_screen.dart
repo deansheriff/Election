@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -100,6 +101,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref.read(authProvider.notifier).login(_phoneCtrl.text.trim(), _passCtrl.text);
       if (mounted) context.go('/home');
+    } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final body = e.response?.data;
+      final message = (body is Map && body['error'] != null)
+          ? body['error'].toString()
+          : 'Login failed. Please try again.';
+
+      if (statusCode == 403 && message.toLowerCase().contains('not verified')) {
+        // Account registered but OTP not verified yet — send to OTP screen
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account not verified. Please enter your OTP.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          context.go('/auth/otp?phone=${Uri.encodeComponent(_phoneCtrl.text.trim())}');
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message), backgroundColor: AppColors.pdpRed),
+          );
+        }
+      }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.pdpRed));
     } finally {
