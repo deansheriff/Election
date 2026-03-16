@@ -1,5 +1,5 @@
 # Stage 1: Build the Flutter web app using a pre-built Flutter image
-FROM ghcr.io/cirruslabs/flutter:3.27.4 AS build
+FROM instrumentisto/flutter:3.24 AS build
 
 WORKDIR /app
 COPY . .
