@@ -16,10 +16,10 @@ class AdminShell extends ConsumerStatefulWidget {
 class _AdminShellState extends ConsumerState<AdminShell> {
   int _navIdx = 0;
 
-  final List<String> _titles = ['Dashboard', 'Candidates', 'Election Config', 'Users', 'Notifications'];
+  final List<String> _titles = ['Dashboard', 'Candidates', 'Election Config', 'Users', 'Notifications', 'SMTP Settings'];
   final List<IconData> _icons = [
     Icons.dashboard_outlined, Icons.people_outline, Icons.settings_outlined,
-    Icons.manage_accounts_outlined, Icons.notifications_outlined,
+    Icons.manage_accounts_outlined, Icons.notifications_outlined, Icons.email_outlined,
   ];
 
   @override
@@ -38,6 +38,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       const _ElectionConfigPage(),
       const _AdminUsersPage(),
       const _NotificationsPage(),
+      const _SmtpSettingsPage(),
     ];
 
     return Scaffold(
@@ -376,5 +377,162 @@ class _NotificationsPageState extends ConsumerState<_NotificationsPage> {
         ],
       ),
     );
+  }
+}
+class _SmtpSettingsPage extends ConsumerStatefulWidget {
+  const _SmtpSettingsPage();
+  @override
+  ConsumerState<_SmtpSettingsPage> createState() => _SmtpSettingsPageState();
+}
+
+class _SmtpSettingsPageState extends ConsumerState<_SmtpSettingsPage> {
+  final _hostCtrl   = TextEditingController();
+  final _portCtrl   = TextEditingController(text: '587');
+  final _userCtrl   = TextEditingController();
+  final _passCtrl   = TextEditingController();
+  final _fromCtrl   = TextEditingController();
+  bool _saving = false;
+  bool _obscurePass = true;
+  String? _statusMsg;
+  bool _statusOk = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('SMTP Email Settings', style: Theme.of(context).textTheme.headlineMedium),
+          const SizedBox(height: 4),
+          Text(
+            'Configure the email server used to send OTP verification codes.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 24),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.green.withOpacity(0.15)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('SMTP Server', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: AppColors.green)),
+                const SizedBox(height: 16),
+                _field(_hostCtrl, 'SMTP Host', 'e.g. smtp.gmail.com', Icons.dns_outlined),
+                const SizedBox(height: 12),
+                _field(_portCtrl, 'Port', '587 (TLS) or 465 (SSL)', Icons.tag_outlined, keyboard: TextInputType.number),
+                const SizedBox(height: 24),
+                Text('Authentication', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: AppColors.green)),
+                const SizedBox(height: 16),
+                _field(_userCtrl, 'SMTP Username / Email', 'your@email.com', Icons.person_outline),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _passCtrl,
+                  obscureText: _obscurePass,
+                  decoration: InputDecoration(
+                    labelText: 'SMTP Password / App Password',
+                    prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textMuted),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePass ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppColors.textMuted),
+                      onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text('Sender', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: AppColors.green)),
+                const SizedBox(height: 16),
+                _field(_fromCtrl, 'From Address', 'no-reply@voteng.ng', Icons.alternate_email_outlined),
+                const SizedBox(height: 24),
+                if (_statusMsg != null) ...[  
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: (_statusOk ? AppColors.green : AppColors.pdpRed).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(children: [
+                      Icon(_statusOk ? Icons.check_circle_outline : Icons.error_outline,
+                          color: _statusOk ? AppColors.green : AppColors.pdpRed, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(_statusMsg!, style: TextStyle(color: _statusOk ? AppColors.green : AppColors.pdpRed, fontSize: 13))),
+                    ]),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                ElevatedButton.icon(
+                  icon: _saving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Icon(Icons.save_outlined),
+                  label: Text(_saving ? 'Saving...' : 'Save SMTP Settings'),
+                  onPressed: _saving ? null : _save,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withOpacity(0.07),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.gold.withOpacity(0.2)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.info_outline, color: AppColors.gold, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'For Gmail: enable 2FA then generate an App Password at myaccount.google.com/apppasswords and use it here.\n\nSettings are saved to the server environment and take effect on next API startup.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.gold, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _field(TextEditingController ctrl, String label, String hint, IconData icon, {TextInputType? keyboard}) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: keyboard,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+        prefixIcon: Icon(icon, color: AppColors.textMuted),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    if (_hostCtrl.text.isEmpty || _userCtrl.text.isEmpty || _passCtrl.text.isEmpty) {
+      setState(() { _statusMsg = 'Host, username, and password are required.'; _statusOk = false; });
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final api = ref.read(apiServiceProvider);
+      await api.updateSmtpSettings({
+        'host': _hostCtrl.text.trim(),
+        'port': int.tryParse(_portCtrl.text) ?? 587,
+        'user': _userCtrl.text.trim(),
+        'pass': _passCtrl.text,
+        'from': _fromCtrl.text.trim().isNotEmpty ? _fromCtrl.text.trim() : _userCtrl.text.trim(),
+      });
+      setState(() { _statusMsg = 'SMTP settings saved. Restart the API for changes to take effect.'; _statusOk = true; });
+    } catch (e) {
+      setState(() { _statusMsg = 'Failed to save: $e'; _statusOk = false; });
+    } finally {
+      setState(() => _saving = false);
+    }
   }
 }

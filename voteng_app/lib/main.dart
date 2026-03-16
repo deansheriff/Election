@@ -12,7 +12,9 @@ class VoteNGApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(routerProvider);
+    // read (not watch) so the router is created once and never rebuilt.
+    // GoRouter refreshes redirects via RouterNotifier.
+    final router = ref.read(routerProvider);
     return MaterialApp.router(
       title: 'VoteNG 2027',
       debugShowCheckedModeBanner: false,

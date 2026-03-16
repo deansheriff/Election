@@ -59,13 +59,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> verifyOtp(String phone, String otp) async {
+  Future<void> verifyOtp(String email, String phone, String otp) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final data = await _api.verifyOtp(phone, otp);
+      final data = await _api.verifyOtp(email: email, phone: phone, otp: otp);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', data['token']);
-      state = AuthState(token: data['token'], user: User.fromJson(data['user']));
+      state = AuthState(token: data['token'], user: User.fromJson(data['user']), isInitialising: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _parseError(e));
       rethrow;

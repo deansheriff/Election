@@ -37,8 +37,12 @@ class ApiService {
     return res.data;
   }
 
-  Future<Map<String, dynamic>> verifyOtp(String phone, String otp) async {
-    final res = await _dio.post('/auth/verify-otp', data: {'phone': phone, 'otp': otp});
+  Future<Map<String, dynamic>> verifyOtp({required String otp, String email = '', String phone = ''}) async {
+    final res = await _dio.post('/auth/verify-otp', data: {
+      if (email.isNotEmpty) 'email': email,
+      if (phone.isNotEmpty) 'phone': phone,
+      'otp': otp,
+    });
     return res.data;
   }
 
@@ -47,8 +51,13 @@ class ApiService {
     return res.data;
   }
 
-  Future<Map<String, dynamic>> resendOtp(String phone) async {
-    final res = await _dio.post('/auth/resend-otp', data: {'phone': phone});
+  Future<Map<String, dynamic>> resendOtp(String emailOrPhone) async {
+    // API accepts either 'email' or 'phone'
+    final isEmail = emailOrPhone.contains('@');
+    final res = await _dio.post('/auth/resend-otp', data: {
+      if (isEmail) 'email': emailOrPhone,
+      if (!isEmail) 'phone': emailOrPhone,
+    });
     return res.data;
   }
 
@@ -181,5 +190,9 @@ class ApiService {
 
   Future<void> sendNotification(String title, String body) async {
     await _dio.post('/admin/notifications', data: {'title': title, 'body': body});
+  }
+
+  Future<void> updateSmtpSettings(Map<String, dynamic> settings) async {
+    await _dio.put('/admin/smtp-settings', data: settings);
   }
 }

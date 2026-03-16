@@ -52,7 +52,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               _field(_phoneCtrl, 'Phone (+234...)', Icons.phone_outlined,
                   keyboardType: TextInputType.phone, validator: (v) => v!.isEmpty ? 'Required' : null),
               const SizedBox(height: 16),
-              _field(_emailCtrl, 'Email (optional)', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+              _field(_emailCtrl, 'Email Address', Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Email is required' : (!v.contains('@') ? 'Enter a valid email' : null)),
               const SizedBox(height: 16),
               _field(_passCtrl, 'Password', Icons.lock_outline,
                   obscure: _obscurePass,
@@ -149,7 +151,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         'gender': _selectedGender ?? 'male',
         'age': int.parse(_ageCtrl.text),
       });
-      if (mounted) context.go('/auth/otp?phone=${Uri.encodeComponent(_phoneCtrl.text.trim())}');
+      if (mounted) context.go(
+        '/auth/otp?email=${Uri.encodeComponent(_emailCtrl.text.trim())}&phone=${Uri.encodeComponent(_phoneCtrl.text.trim())}',
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.pdpRed));
     } finally {
