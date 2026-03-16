@@ -46,8 +46,13 @@ class ApiService {
     return res.data;
   }
 
-  Future<Map<String, dynamic>> login(String phone, String password) async {
-    final res = await _dio.post('/auth/login', data: {'phone': phone, 'password': password});
+  Future<Map<String, dynamic>> login(String identifier, String password) async {
+    final isEmail = identifier.contains('@');
+    final res = await _dio.post('/auth/login', data: {
+      if (isEmail) 'email': identifier,
+      if (!isEmail) 'phone': identifier,
+      'password': password,
+    });
     return res.data;
   }
 

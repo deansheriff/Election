@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -154,8 +155,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (mounted) context.go(
         '/auth/otp?email=${Uri.encodeComponent(_emailCtrl.text.trim())}&phone=${Uri.encodeComponent(_phoneCtrl.text.trim())}',
       );
+    } on DioException catch (e) {
+      final body = e.response?.data;
+      final msg = (body is Map && body['error'] != null)
+          ? body['error'].toString()
+          : 'Registration failed. Please try again.';
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: AppColors.pdpRed));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.pdpRed));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.pdpRed));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

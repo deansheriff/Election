@@ -46,10 +46,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 36),
                 TextFormField(
                   controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone_outlined, color: AppColors.textMuted),
+                    labelText: 'Phone or Email',
+                    prefixIcon: Icon(Icons.person_outline, color: AppColors.textMuted),
                   ),
                   validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
@@ -117,7 +117,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               backgroundColor: Colors.orange,
             ),
           );
-          context.go('/auth/otp?phone=${Uri.encodeComponent(_phoneCtrl.text.trim())}');
+          final input = _phoneCtrl.text.trim();
+          final isEmail = input.contains('@');
+          context.go('/auth/otp?${isEmail ? 'email' : 'phone'}=${Uri.encodeComponent(input)}');
         }
       } else {
         if (mounted) {
