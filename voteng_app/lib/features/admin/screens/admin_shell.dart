@@ -29,7 +29,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     final auth = ref.watch(authProvider);
     if (auth.user?.isAdmin != true) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Admin Panel')),
+        backgroundColor: AppColors.bgDark,
         body: const Center(child: Text('Access Denied', style: TextStyle(color: AppColors.pdpRed, fontSize: 24))),
       );
     }
@@ -48,44 +48,121 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Admin — ${_titles[_navIdx]}'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
-        actions: [
-          Chip(
-            label: const Text('ADMIN', style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.w800, fontSize: 11)),
-            backgroundColor: AppColors.gold.withOpacity(0.1),
-            side: BorderSide(color: AppColors.gold.withOpacity(0.3)),
+      backgroundColor: AppColors.bgDark,
+      body: Row(
+        children: [
+          // ── Persistent Sidebar ──
+          Container(
+            width: 240,
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(right: BorderSide(color: AppColors.borderDark)),
+            ),
+            child: Column(children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(children: [
+                  Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(color: AppColors.green, borderRadius: BorderRadius.circular(18)),
+                    child: const Icon(Icons.how_to_vote, color: Colors.white, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('VoteNG 2027', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w700)),
+                    Text('ADMIN DASHBOARD', style: TextStyle(color: AppColors.green.withOpacity(0.7), fontSize: 9, fontWeight: FontWeight.w600, letterSpacing: 1.5)),
+                  ]),
+                ]),
+              ),
+              // Nav items (except last 2 which go in settings area)
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  children: [
+                    for (int i = 0; i < _titles.length - 1; i++) // All except SMTP
+                      _SidebarItem(
+                        icon: _icons[i], label: _titles[i],
+                        selected: _navIdx == i,
+                        onTap: () => setState(() => _navIdx = i),
+                      ),
+                  ],
+                ),
+              ),
+              // Settings at bottom
+              Container(
+                decoration: const BoxDecoration(border: Border(top: BorderSide(color: AppColors.borderDark))),
+                padding: const EdgeInsets.all(12),
+                child: _SidebarItem(
+                  icon: _icons.last, label: _titles.last,
+                  selected: _navIdx == _titles.length - 1,
+                  onTap: () => setState(() => _navIdx = _titles.length - 1),
+                ),
+              ),
+            ]),
           ),
-          const SizedBox(width: 8),
+          // ── Main Content ──
+          Expanded(
+            child: Column(children: [
+              // Top bar
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                child: Row(children: [
+                  Text(_titles[_navIdx], style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: AppColors.textMuted),
+                    onPressed: () {},
+                  ),
+                  const SizedBox(width: 4),
+                  Container(
+                    width: 34, height: 34,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceElevated,
+                      borderRadius: BorderRadius.circular(17),
+                      border: Border.all(color: AppColors.borderDark),
+                    ),
+                    child: const Icon(Icons.person_outline, color: AppColors.textMuted, size: 18),
+                  ),
+                ]),
+              ),
+              Expanded(child: pages[_navIdx]),
+            ]),
+          ),
         ],
       ),
-      drawer: Drawer(
-        backgroundColor: AppColors.surface,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: AppColors.surfaceElevated),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
-                const Icon(Icons.admin_panel_settings, color: AppColors.green, size: 36),
-                const SizedBox(height: 8),
-                Text('Admin Panel', style: Theme.of(context).textTheme.headlineMedium),
-                Text(auth.user?.fullName ?? '', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-              ]),
-            ),
-            for (int i = 0; i < _titles.length; i++)
-              ListTile(
-                leading: Icon(_icons[i], color: _navIdx == i ? AppColors.green : AppColors.textMuted),
-                title: Text(_titles[i], style: TextStyle(color: _navIdx == i ? AppColors.green : AppColors.textPrimary)),
-                selected: _navIdx == i,
-                selectedTileColor: AppColors.green.withOpacity(0.08),
-                onTap: () { setState(() => _navIdx = i); Navigator.pop(context); },
-              ),
-          ],
+    );
+  }
+}
+
+class _SidebarItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _SidebarItem({required this.icon, required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? AppColors.green.withOpacity(0.15) : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        hoverColor: AppColors.surfaceElevated,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(children: [
+            Icon(icon, size: 20, color: selected ? AppColors.green : AppColors.textMuted),
+            const SizedBox(width: 10),
+            Text(label, style: TextStyle(
+              color: selected ? Colors.white : AppColors.textSecondary,
+              fontSize: 13, fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+            )),
+          ]),
         ),
       ),
-      body: pages[_navIdx],
     );
   }
 }
@@ -102,17 +179,19 @@ class _AdminDashboardPage extends ConsumerWidget {
     return statsAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Error: $e')),
-      data: (stats) => GridView(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2, childAspectRatio: 1.4, crossAxisSpacing: 12, mainAxisSpacing: 12,
+      data: (stats) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Row(
+          children: [
+            _StatCard('Total Voters', _fmt(stats['total_registered'] ?? 0)),
+            const SizedBox(width: 16),
+            _StatCard('Votes Cast', _fmt(stats['total_votes_cast'] ?? 0)),
+            const SizedBox(width: 16),
+            _StatCard('Open Tiers', '${(stats['open_tiers'] as List?)?.length ?? 0}'),
+            const SizedBox(width: 16),
+            _StatCard('Flagged Activities', '${stats['flagged_accounts'] ?? 0}', isRed: true),
+          ],
         ),
-        children: [
-          _StatCard('Registered Voters', _fmt(stats['total_registered'] ?? 0), Icons.people_rounded, AppColors.green),
-          _StatCard('Total Votes Cast', _fmt(stats['total_votes_cast'] ?? 0), Icons.how_to_vote_rounded, AppColors.adcBlue),
-          _StatCard('Open Tiers', '${(stats['open_tiers'] as List?)?.length ?? 0}', Icons.check_circle_outline_rounded, AppColors.lpOrange),
-          _StatCard('Flagged Accounts', '${stats['flagged_accounts'] ?? 0}', Icons.flag_outlined, AppColors.pdpRed),
-        ],
       ),
     );
   }
@@ -127,25 +206,28 @@ class _AdminDashboardPage extends ConsumerWidget {
 
 class _StatCard extends StatelessWidget {
   final String label, value;
-  final IconData icon;
-  final Color color;
-  const _StatCard(this.label, this.value, this.icon, this.color);
+  final bool isRed;
+  const _StatCard(this.label, this.value, {this.isRed = false});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2)),
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderDark),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(
+            color: isRed ? AppColors.pdpRed : Colors.white,
+            fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5,
+          )),
+        ]),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(icon, color: color, size: 28),
-        const Spacer(),
-        Text(value, style: TextStyle(color: color, fontSize: 26, fontWeight: FontWeight.w800)),
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-      ]),
     );
   }
 }

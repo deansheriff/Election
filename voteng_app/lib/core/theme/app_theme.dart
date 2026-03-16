@@ -17,11 +17,13 @@ class AppColors {
   static const nnppPurple = Color(0xFF6A0DAD);
   static const apgaTeal = Color(0xFF007A5E);
 
-  // Backgrounds
-  static const bgDark = Color(0xFF0A0F0D);
-  static const surface = Color(0xFF121A15);
-  static const surfaceElevated = Color(0xFF1A2620);
-  static const cardBg = Color(0xFF1E2D25);
+  // Backgrounds (matched to UI reference)
+  static const bgDark = Color(0xFF0F231B);
+  static const surface = Color(0xFF122A20);
+  static const surfaceElevated = Color(0xFF1E4434);
+  static const cardBg = Color(0xFF122A20);
+  static const borderDark = Color(0xFF1E4434);
+  static const hoverBg = Color(0xFF173629);
 
   // Text
   static const textPrimary = Color(0xFFEEF2EE);
