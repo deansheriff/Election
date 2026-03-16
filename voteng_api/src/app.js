@@ -10,6 +10,7 @@ const app = express();
 const server = http.createServer(app);
 
 // ── MIDDLEWARE ───────────────────────────────────────────
+app.set('trust proxy', 1); // Trust Traefik / Coolify reverse proxy
 app.use(helmet());
 app.use(cors({
     origin: '*',
@@ -77,7 +78,16 @@ wss.on('connection', (ws) => {
 
 // ── START ────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`\n🗳️  VoteNG 2027 API running on http://localhost:${PORT}`);
-    console.log(`📡  WebSocket server active on ws://localhost:${PORT}`);
-});
+const initDatabase = require('./db-init');
+
+initDatabase()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`\n🗳️  VoteNG 2027 API running on http://localhost:${PORT}`);
+      console.log(`📡  WebSocket server active on ws://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('[DB Init] Fatal error — could not initialise database:', err.message);
+    process.exit(1);
+  });
