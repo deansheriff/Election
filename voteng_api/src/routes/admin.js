@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const { authenticate, adminOnly } = require('../middleware/auth');
+const fs = require('fs');
+const path = require('path');
 
 // All admin routes require auth + admin role
 router.use(authenticate, adminOnly);
@@ -225,8 +227,6 @@ router.put('/users/:id/verify', async (req, res) => {
 });
 
 // POST /admin/upload – base64 image upload
-const fs = require('fs');
-const path = require('path');
 router.post('/upload', async (req, res) => {
     try {
         const { image, filename } = req.body;
@@ -294,8 +294,6 @@ router.get('/notifications', async (req, res) => {
 
 // ── SMTP SETTINGS ──────────────────────────────────
 // PUT /admin/smtp-settings  — persists SMTP credentials to smtp.json
-const fs = require('fs');
-const path = require('path');
 const smtpConfigPath = path.join(__dirname, '../../smtp.json');
 
 router.put('/smtp-settings', (req, res) => {
