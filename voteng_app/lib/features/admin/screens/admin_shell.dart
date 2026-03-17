@@ -1,6 +1,8 @@
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/providers.dart';
 import '../../../core/constants/app_constants.dart';
@@ -35,7 +37,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     }
 
     final pages = [
-      const _AdminCandidatesPage(),
+      const _AdminDashboardPage(),
       const _AdminCandidatesPage(),
       const _AdminPartiesPage(),
       const _ElectionConfigPage(),
@@ -179,23 +181,79 @@ class _AdminDashboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(adminStatsProvider);
-    return statsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (stats) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 28),
-        child: Row(
-          children: [
-            _StatCard('Total Voters', _fmt(stats['total_registered'] ?? 0)),
-            const SizedBox(width: 16),
-            _StatCard('Votes Cast', _fmt(stats['total_votes_cast'] ?? 0)),
-            const SizedBox(width: 16),
-            _StatCard('Open Tiers', '${(stats['open_tiers'] as List?)?.length ?? 0}'),
-            const SizedBox(width: 16),
-            _StatCard('Flagged Activities', '${stats['flagged_accounts'] ?? 0}', isRed: true),
-          ],
+    final configAsync = ref.watch(electionConfigProvider);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Stats Grid
+        statsAsync.when(
+          loading: () => const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator())),
+          error: (e, _) => Center(child: Text('Error: $e')),
+          data: (stats) => Row(
+            children: [
+              _StatCard('Total Voters', _fmt(stats['total_registered'] ?? 0)),
+              const SizedBox(width: 16),
+              _StatCard('Votes Cast', _fmt(stats['total_votes_cast'] ?? 0)),
+              const SizedBox(width: 16),
+              _StatCard('Open Tiers', '${(stats['open_tiers'] as List?)?.length ?? 0}'),
+              const SizedBox(width: 16),
+              _StatCard('Flagged Activities', '${stats['flagged_accounts'] ?? 0}', isRed: true),
+            ],
+          ),
         ),
-      ),
+        const SizedBox(height: 24),
+
+        // Election Tier Status
+        configAsync.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (configs) => Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderDark),
+            ),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Election Tier Status', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: configs.map<Widget>((cfg) {
+                  final isOpen = cfg['is_open'] == 1;
+                  return Container(
+                    width: 220,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgDark,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.borderDark),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(cfg['election_label'] ?? cfg['election_type'], style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          const Text('Level', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                        ]),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isOpen ? AppColors.green.withOpacity(0.15) : AppColors.borderDark,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(isOpen ? 'OPEN' : 'CLOSED', style: TextStyle(color: isOpen ? AppColors.green : AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ]),
+          ),
+        ),
+      ]),
     );
   }
 
@@ -216,13 +274,13 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.borderDark),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
           Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 13, fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           Text(value, style: TextStyle(
@@ -599,6 +657,10 @@ class _CandidateFormDialogState extends ConsumerState<_CandidateFormDialog> {
   bool _isIncumbent = false;
   bool _loading = false;
 
+  // Image upload
+  PlatformFile? _pickedFile;
+  String? _existingPhotoUrl;
+
   bool get _isEdit => widget.existing != null;
 
   @override
@@ -612,6 +674,14 @@ class _CandidateFormDialogState extends ConsumerState<_CandidateFormDialog> {
     _type = e?['election_type'] ?? 'presidential';
     _partyId = e?['party_id'];
     _isIncumbent = e?['is_incumbent'] == 1 || e?['is_incumbent'] == true;
+    _existingPhotoUrl = e?['photo_url'];
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (result != null && result.files.isNotEmpty) {
+      setState(() => _pickedFile = result.files.first);
+    }
   }
 
   @override
@@ -620,54 +690,90 @@ class _CandidateFormDialogState extends ConsumerState<_CandidateFormDialog> {
     return AlertDialog(
       backgroundColor: AppColors.surfaceElevated,
       title: Text(_isEdit ? 'Edit Candidate' : 'Add Candidate'),
-      content: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            value: _type,
-            dropdownColor: AppColors.surfaceElevated,
-            decoration: const InputDecoration(labelText: 'Election Type'),
-            items: kElectionTypes.map((t) => DropdownMenuItem(value: t, child: Text(kElectionTypeLabels[t] ?? t))).toList(),
-            onChanged: (v) => setState(() => _type = v!),
-          ),
-          const SizedBox(height: 12),
-          partiesAsync.when(
-            loading: () => const LinearProgressIndicator(),
-            error: (e, _) => Text('Error loading parties: $e'),
-            data: (parties) {
-              if (_partyId == null && parties.isNotEmpty) _partyId = parties[0]['id'];
-              return DropdownButtonFormField<int>(
-                value: _partyId,
-                dropdownColor: AppColors.surfaceElevated,
-                decoration: const InputDecoration(labelText: 'Party'),
-                items: parties.map<DropdownMenuItem<int>>((p) =>
-                    DropdownMenuItem(value: p['id'] as int, child: Text('${p['abbreviation']} — ${p['name']}'))).toList(),
-                onChanged: (v) => setState(() => _partyId = v),
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          TextField(controller: _runningMateCtrl, decoration: const InputDecoration(labelText: 'Running Mate (optional)')),
-          const SizedBox(height: 12),
-          TextField(controller: _ageCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Age (optional)')),
-          const SizedBox(height: 12),
-          TextField(controller: _bioCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Bio (optional)')),
-          const SizedBox(height: 8),
-          CheckboxListTile(
-            value: _isIncumbent,
-            title: const Text('Incumbent'),
-            onChanged: (v) => setState(() => _isIncumbent = v!),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-          ),
-        ]),
+      content: SizedBox(
+        width: 450,
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            // ── Photo Upload ──
+            InkWell(
+              onTap: _pickImage,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                height: 120,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.bgDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.borderDark),
+                ),
+                child: _pickedFile != null && _pickedFile!.bytes != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.memory(_pickedFile!.bytes!, fit: BoxFit.contain))
+                    : _existingPhotoUrl != null && _existingPhotoUrl!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(_existingPhotoUrl!, fit: BoxFit.contain))
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_a_photo_outlined, color: AppColors.textMuted, size: 32),
+                              SizedBox(height: 6),
+                              Text('Click to upload photo', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                            ],
+                          ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Full Name')),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _type,
+              dropdownColor: AppColors.surfaceElevated,
+              decoration: const InputDecoration(labelText: 'Election Type'),
+              items: kElectionTypes.map((t) => DropdownMenuItem(value: t, child: Text(kElectionTypeLabels[t] ?? t))).toList(),
+              onChanged: (v) => setState(() => _type = v!),
+            ),
+            const SizedBox(height: 12),
+            partiesAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (e, _) => Text('Error loading parties: $e'),
+              data: (parties) {
+                if (_partyId == null && parties.isNotEmpty) _partyId = parties[0]['id'];
+                return DropdownButtonFormField<int>(
+                  value: _partyId,
+                  dropdownColor: AppColors.surfaceElevated,
+                  decoration: const InputDecoration(labelText: 'Party'),
+                  items: parties.map<DropdownMenuItem<int>>((p) =>
+                      DropdownMenuItem(value: p['id'] as int, child: Text('${p['abbreviation']} — ${p['name']}'))).toList(),
+                  onChanged: (v) => setState(() => _partyId = v),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(controller: _runningMateCtrl, decoration: const InputDecoration(labelText: 'Running Mate (optional)')),
+            const SizedBox(height: 12),
+            TextField(controller: _ageCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Age (optional)')),
+            const SizedBox(height: 12),
+            TextField(controller: _bioCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Bio (optional)')),
+            const SizedBox(height: 8),
+            CheckboxListTile(
+              value: _isIncumbent,
+              title: const Text('Incumbent'),
+              onChanged: (v) => setState(() => _isIncumbent = v!),
+              controlAffinity: ListTileControlAffinity.leading,
+              contentPadding: EdgeInsets.zero,
+            ),
+          ]),
+        ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: _loading ? null : _submit,
-          child: Text(_isEdit ? 'Save' : 'Add'),
+          child: _loading
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text(_isEdit ? 'Save' : 'Add'),
         ),
       ],
     );
@@ -676,23 +782,38 @@ class _CandidateFormDialogState extends ConsumerState<_CandidateFormDialog> {
   Future<void> _submit() async {
     if (_nameCtrl.text.trim().isEmpty || _partyId == null) return;
     setState(() => _loading = true);
-    final api = ref.read(apiServiceProvider);
-    final data = {
-      'full_name': _nameCtrl.text.trim(),
-      'party_id': _partyId,
-      'election_type': _type,
-      'running_mate_name': _runningMateCtrl.text.trim().isNotEmpty ? _runningMateCtrl.text.trim() : null,
-      'age': int.tryParse(_ageCtrl.text),
-      'bio': _bioCtrl.text.trim().isNotEmpty ? _bioCtrl.text.trim() : null,
-      'is_incumbent': _isIncumbent,
-    };
-    if (_isEdit) {
-      await api.updateCandidate(widget.existing!['id'], data);
-    } else {
-      await api.addCandidate(data);
+    try {
+      final api = ref.read(apiServiceProvider);
+
+      // Upload image if picked
+      String? photoUrl = _existingPhotoUrl;
+      if (_pickedFile != null && _pickedFile!.bytes != null) {
+        final b64 = base64Encode(_pickedFile!.bytes!);
+        photoUrl = await api.uploadImage(b64, _pickedFile!.name);
+      }
+
+      final data = {
+        'full_name': _nameCtrl.text.trim(),
+        'party_id': _partyId,
+        'election_type': _type,
+        'photo_url': photoUrl,
+        'running_mate_name': _runningMateCtrl.text.trim().isNotEmpty ? _runningMateCtrl.text.trim() : null,
+        'age': int.tryParse(_ageCtrl.text),
+        'bio': _bioCtrl.text.trim().isNotEmpty ? _bioCtrl.text.trim() : null,
+        'is_incumbent': _isIncumbent,
+      };
+      if (_isEdit) {
+        await api.updateCandidate(widget.existing!['id'], data);
+      } else {
+        await api.addCandidate(data);
+      }
+      ref.invalidate(adminCandidatesProvider);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-    ref.invalidate(adminCandidatesProvider);
-    if (mounted) Navigator.pop(context);
   }
 }
 
@@ -799,6 +920,10 @@ class _PartyFormDialogState extends ConsumerState<_PartyFormDialog> {
   late final TextEditingController _manifestoCtrl;
   bool _loading = false;
 
+  // Logo upload
+  PlatformFile? _pickedLogo;
+  String? _existingLogoUrl;
+
   bool get _isEdit => widget.existing != null;
 
   @override
@@ -809,6 +934,14 @@ class _PartyFormDialogState extends ConsumerState<_PartyFormDialog> {
     _abbrCtrl = TextEditingController(text: e?['abbreviation'] ?? '');
     _colorCtrl = TextEditingController(text: e?['color_hex'] ?? '#008751');
     _manifestoCtrl = TextEditingController(text: e?['manifesto'] ?? '');
+    _existingLogoUrl = e?['logo_url'];
+  }
+
+  Future<void> _pickLogo() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (result != null && result.files.isNotEmpty) {
+      setState(() => _pickedLogo = result.files.first);
+    }
   }
 
   @override
@@ -820,32 +953,68 @@ class _PartyFormDialogState extends ConsumerState<_PartyFormDialog> {
     return AlertDialog(
       backgroundColor: AppColors.surfaceElevated,
       title: Text(_isEdit ? 'Edit Party' : 'Add Party'),
-      content: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Party Name')),
-          const SizedBox(height: 12),
-          TextField(controller: _abbrCtrl, decoration: const InputDecoration(labelText: 'Abbreviation (e.g. APC)')),
-          const SizedBox(height: 12),
-          Row(children: [
-            Expanded(
-              child: TextField(
-                controller: _colorCtrl,
-                decoration: const InputDecoration(labelText: 'Color Hex (e.g. #008751)'),
-                onChanged: (_) => setState(() {}),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            // ── Logo Upload ──
+            InkWell(
+              onTap: _pickLogo,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                height: 100,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.bgDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.borderDark),
+                ),
+                child: _pickedLogo != null && _pickedLogo!.bytes != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.memory(_pickedLogo!.bytes!, fit: BoxFit.contain))
+                    : _existingLogoUrl != null && _existingLogoUrl!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(_existingLogoUrl!, fit: BoxFit.contain))
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate_outlined, color: AppColors.textMuted, size: 28),
+                              SizedBox(height: 4),
+                              Text('Click to upload logo', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                            ],
+                          ),
               ),
             ),
-            const SizedBox(width: 8),
-            Container(width: 40, height: 40, decoration: BoxDecoration(color: previewColor, borderRadius: BorderRadius.circular(8))),
+            const SizedBox(height: 12),
+            TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Party Name')),
+            const SizedBox(height: 12),
+            TextField(controller: _abbrCtrl, decoration: const InputDecoration(labelText: 'Abbreviation (e.g. APC)')),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _colorCtrl,
+                  decoration: const InputDecoration(labelText: 'Color Hex (e.g. #008751)'),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(width: 40, height: 40, decoration: BoxDecoration(color: previewColor, borderRadius: BorderRadius.circular(8))),
+            ]),
+            const SizedBox(height: 12),
+            TextField(controller: _manifestoCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Manifesto (optional)')),
           ]),
-          const SizedBox(height: 12),
-          TextField(controller: _manifestoCtrl, maxLines: 3, decoration: const InputDecoration(labelText: 'Manifesto (optional)')),
-        ]),
+        ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
         ElevatedButton(
           onPressed: _loading ? null : _submit,
-          child: Text(_isEdit ? 'Save' : 'Add'),
+          child: _loading
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text(_isEdit ? 'Save' : 'Add'),
         ),
       ],
     );
@@ -854,20 +1023,35 @@ class _PartyFormDialogState extends ConsumerState<_PartyFormDialog> {
   Future<void> _submit() async {
     if (_nameCtrl.text.trim().isEmpty || _abbrCtrl.text.trim().isEmpty) return;
     setState(() => _loading = true);
-    final api = ref.read(apiServiceProvider);
-    final data = {
-      'name': _nameCtrl.text.trim(),
-      'abbreviation': _abbrCtrl.text.trim().toUpperCase(),
-      'color_hex': _colorCtrl.text.trim(),
-      'manifesto': _manifestoCtrl.text.trim().isNotEmpty ? _manifestoCtrl.text.trim() : null,
-    };
-    if (_isEdit) {
-      await api.updateParty(widget.existing!['id'], data);
-    } else {
-      await api.addParty(data);
+    try {
+      final api = ref.read(apiServiceProvider);
+
+      // Upload logo if picked
+      String? logoUrl = _existingLogoUrl;
+      if (_pickedLogo != null && _pickedLogo!.bytes != null) {
+        final b64 = base64Encode(_pickedLogo!.bytes!);
+        logoUrl = await api.uploadImage(b64, _pickedLogo!.name);
+      }
+
+      final data = {
+        'name': _nameCtrl.text.trim(),
+        'abbreviation': _abbrCtrl.text.trim().toUpperCase(),
+        'color_hex': _colorCtrl.text.trim(),
+        'logo_url': logoUrl,
+        'manifesto': _manifestoCtrl.text.trim().isNotEmpty ? _manifestoCtrl.text.trim() : null,
+      };
+      if (_isEdit) {
+        await api.updateParty(widget.existing!['id'], data);
+      } else {
+        await api.addParty(data);
+      }
+      ref.invalidate(adminPartiesProvider);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-    ref.invalidate(adminPartiesProvider);
-    if (mounted) Navigator.pop(context);
   }
 }
 
@@ -965,6 +1149,7 @@ class _AdminUsersPageState extends ConsumerState<_AdminUsersPage> {
           final u = users[i];
           final isFlagged = u['is_flagged'] == 1 || u['is_flagged'] == true;
           final isAdmin = u['is_admin'] == 1 || u['is_admin'] == true;
+          final isVerified = u['is_verified'] == 1 || u['is_verified'] == true;
           return ListTile(
             leading: CircleAvatar(
               backgroundColor: isFlagged ? AppColors.pdpRed.withOpacity(0.15) : AppColors.green.withOpacity(0.1),
@@ -983,9 +1168,24 @@ class _AdminUsersPageState extends ConsumerState<_AdminUsersPage> {
                   child: const Text('ADMIN', style: TextStyle(color: AppColors.gold, fontSize: 9, fontWeight: FontWeight.w800)),
                 ),
               ],
+              if (isVerified) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.verified, color: AppColors.green, size: 16),
+              ],
             ]),
             subtitle: Text('${u['state'] ?? ''} • ${u['phone'] ?? u['email'] ?? ''}', style: const TextStyle(fontSize: 12)),
             trailing: isAdmin ? null : Row(mainAxisSize: MainAxisSize.min, children: [
+              IconButton(
+                tooltip: isVerified ? 'Unverify' : 'Verify',
+                icon: Icon(
+                  isVerified ? Icons.verified_rounded : Icons.verified_outlined,
+                  color: isVerified ? AppColors.green : AppColors.textMuted,
+                ),
+                onPressed: () async {
+                  await ref.read(apiServiceProvider).verifyUser(u['id'], !isVerified);
+                  _load();
+                },
+              ),
               IconButton(
                 tooltip: isFlagged ? 'Unflag' : 'Flag',
                 icon: Icon(

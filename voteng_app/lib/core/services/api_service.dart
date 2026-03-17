@@ -247,4 +247,18 @@ class ApiService {
     });
     return res.data;
   }
+
+  // ── ADMIN VERIFY USER ──────────────────────────────
+  Future<void> verifyUser(int userId, bool verified) async {
+    await _dio.put('/admin/users/$userId/verify', data: {'verified': verified});
+  }
+
+  // ── ADMIN IMAGE UPLOAD ──────────────────────────────
+  Future<String> uploadImage(String base64Image, String filename) async {
+    final res = await _dio.post('/admin/upload', data: {
+      'image': base64Image,
+      'filename': filename,
+    });
+    return res.data['url'];
+  }
 }

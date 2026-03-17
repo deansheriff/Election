@@ -213,6 +213,40 @@ router.delete('/users/:id', async (req, res) => {
     }
 });
 
+// PUT /admin/users/:id/verify
+router.put('/users/:id/verify', async (req, res) => {
+    try {
+        const { verified } = req.body;
+        await db.query('UPDATE users SET is_verified = ? WHERE id = ?', [verified ? 1 : 0, req.params.id]);
+        return res.json({ message: `User ${verified ? 'verified' : 'unverified'}` });
+    } catch (err) {
+        return res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// POST /admin/upload – base64 image upload
+const fs = require('fs');
+const path = require('path');
+router.post('/upload', async (req, res) => {
+    try {
+        const { image, filename } = req.body;
+        if (!image || !filename) {
+            return res.status(400).json({ error: 'image (base64) and filename are required' });
+        }
+        // Strip data URI prefix if present
+        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        const ext = filename.split('.').pop() || 'png';
+        const safeName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const uploadDir = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+        const filePath = path.join(uploadDir, safeName);
+        fs.writeFileSync(filePath, base64Data, 'base64');
+        return res.json({ url: `/uploads/${safeName}` });
+    } catch (err) {
+        return res.status(500).json({ error: 'Upload failed', details: err.message });
+    }
+});
+
 // ── STATS OVERVIEW ──────────────────────────────────────
 // GET /admin/stats
 router.get('/stats', async (req, res) => {
