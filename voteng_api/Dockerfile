@@ -1,11 +1,11 @@
 FROM node:18-alpine
 WORKDIR /app
 
-# Build context is voteng_api/ (Coolify sends the subdirectory as context)
-COPY package*.json ./
+# Build context is repo root (docker-compose.yaml sets context: .)
+COPY voteng_api/package*.json ./
 RUN npm install --production
 
-COPY . .
+COPY voteng_api/ .
 
 EXPOSE 3000
 
