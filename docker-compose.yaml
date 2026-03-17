@@ -25,8 +25,8 @@ services:
 
   api:
     build:
-      context: ./voteng_api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: voteng_api/Dockerfile
     container_name: voteng_api
     restart: unless-stopped
     depends_on:

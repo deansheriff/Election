@@ -516,7 +516,7 @@ class _AdminCandidatesPage extends ConsumerWidget {
                                           Switch(
                                             value: isOpen,
                                             onChanged: (v) async {
-                                              await ref.read(apiServiceProvider).updateElectionConfig(cfg['id'], isOpen: v);
+                                              await ref.read(apiServiceProvider).updateElectionConfig(cfg['election_type'], {'is_open': v});
                                               ref.invalidate(electionConfigProvider);
                                             },
                                             activeColor: Colors.white,

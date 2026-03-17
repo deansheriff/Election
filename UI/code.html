@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VoteNG 2027 Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#008550",
+            "background-light": "#f5f8f7",
+            "background-dark": "#0f231b",
+          },
+          fontFamily: {
+            "display": ["Public Sans", "sans-serif"]
+          },
+          borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+        },
+      },
+    }
+  </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 min-h-screen">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 bg-background-light dark:bg-[#122a20] border-r border-slate-200 dark:border-[#1e4434] flex flex-col h-full flex-shrink-0 transition-colors duration-200">
+<div class="p-6 flex items-center gap-3">
+<div class="bg-primary aspect-square rounded-full size-10 flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-white text-xl">how_to_vote</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-slate-900 dark:text-white text-lg font-bold leading-tight">VoteNG 2027</h1>
+<p class="text-primary dark:text-[#8dceb4] text-xs font-medium uppercase tracking-wider">Admin Dashboard</p>
+</div>
+</div>
+<nav class="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 dark:bg-primary/20 text-primary dark:text-white transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px]">group</span>
+<span class="text-sm font-medium">Candidates</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">flag</span>
+<span class="text-sm font-medium">Parties</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">settings_applications</span>
+<span class="text-sm font-medium">Election Config</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">bar_chart</span>
+<span class="text-sm font-medium">Results</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">person</span>
+<span class="text-sm font-medium">Users</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">campaign</span>
+<span class="text-sm font-medium">Broadcast</span>
+</a>
+</nav>
+<div class="p-4 mt-auto border-t border-slate-200 dark:border-[#1e4434]">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors group" href="#">
+<span class="material-symbols-outlined text-[22px] group-hover:text-primary transition-colors">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-full overflow-hidden bg-background-light dark:bg-background-dark">
+<!-- Header Area (Top padding only) -->
+<div class="px-8 py-6">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-2xl font-bold text-slate-900 dark:text-white">Candidates Overview</h2>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="size-9 rounded-full bg-slate-200 dark:bg-[#1e4434] flex items-center justify-center overflow-hidden border border-slate-300 dark:border-[#2e6b53]">
+<span class="material-symbols-outlined text-slate-500 dark:text-slate-400">person</span>
+</div>
+</div>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-white dark:bg-[#122a20] border border-slate-200 dark:border-[#1e4434] shadow-sm">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Total Voters</p>
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">2.1M</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-white dark:bg-[#122a20] border border-slate-200 dark:border-[#1e4434] shadow-sm">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Votes Cast</p>
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">1.8M</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-white dark:bg-[#122a20] border border-slate-200 dark:border-[#1e4434] shadow-sm">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Open Tiers</p>
+<p class="text-slate-900 dark:text-white text-3xl font-bold tracking-tight">3</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-white dark:bg-[#122a20] border border-slate-200 dark:border-[#1e4434] shadow-sm">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Flagged Activities</p>
+<p class="text-red-600 dark:text-red-400 text-3xl font-bold tracking-tight">14</p>
+</div>
+</div>
+</div>
+<!-- Content Area with Table and Right Panel -->
+<div class="flex-1 flex overflow-hidden px-8 pb-8 gap-6">
+<!-- Main Table Area -->
+<div class="flex-1 flex flex-col bg-white dark:bg-[#122a20] border border-slate-200 dark:border-[#1e4434] rounded-xl shadow-sm overflow-hidden">
+<!-- Table Toolbar -->
+<div class="flex justify-between items-center p-4 border-b border-slate-200 dark:border-[#1e4434]">
+<div class="flex gap-2">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+<input class="pl-10 pr-4 py-2 bg-slate-50 dark:bg-[#0f231b] border border-slate-200 dark:border-[#2e6b53] rounded-lg text-sm text-slate-900 dark:text-white focus:ring-1 focus:ring-primary focus:border-primary outline-none w-64" placeholder="Search candidates..." type="text"/>
+</div>
+<button class="flex items-center justify-center size-9 rounded-lg border border-slate-200 dark:border-[#2e6b53] text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-[#1e4434] transition-colors">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+</button>
+</div>
+<button class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg text-sm font-bold transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>Add Candidate</span>
+</button>
+</div>
+<!-- Table Container -->
+<div class="flex-1 overflow-auto @container">
+<table class="w-full text-left border-collapse min-w-[800px]">
+<thead class="sticky top-0 bg-slate-50 dark:bg-[#173629] z-10 border-b border-slate-200 dark:border-[#1e4434]">
+<tr>
+<th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider w-16">Photo</th>
+<th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider">Name</th>
+<th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider">Party</th>
+<th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider">Election Type</th>
+<th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider">State</th>
+<th class="px-6 py-3 text-xs font-semibold text-slate-500 dark:text-slate-300 uppercase tracking-wider text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-[#1e4434]">
+<!-- Row 1 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-[#152e23] transition-colors group">
+<td class="px-6 py-3">
+<div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover bg-center border border-slate-200 dark:border-slate-600 shadow-sm" data-alt="Portrait of Candidate" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuB9EFy00j4s-Wt9ev8R3eq2JeVNxYS5UP67rikWS65cGlWkjb6JTUJdUSdnB_djIW2gmH_7brcpOlI-UGMqVMoAZ8lskeKNAVmFS-Xqs0Y7qXs_xbama22yxU8aW8q3tTe7E6Cc9Bwgt873z6lsVCTwnqmTcYBNultA_urNUVYMkJ7S_5-ZTkU_DgJzhSkdJ0VIXLvAC8uOgyvGo7V-CF3eqKnZNw3br9pgeyJyKTquKMJAouHJ261lV5oWGQtUSxZJQAWNJLRRbDGt");'></div>
+</td>
+<td class="px-6 py-3">
+<div class="text-sm font-medium text-slate-900 dark:text-white">Bola Ahmed Tinubu</div>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800">APC</span>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-800 dark:bg-[#1e4434] dark:text-slate-200">Presidential</span>
+</td>
+<td class="px-6 py-3 text-sm text-slate-600 dark:text-slate-400">National</td>
+<td class="px-6 py-3 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-400 hover:text-primary dark:hover:text-primary rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Edit">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Delete">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-[#152e23] transition-colors group">
+<td class="px-6 py-3">
+<div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover bg-center border border-slate-200 dark:border-slate-600 shadow-sm" data-alt="Portrait of Candidate" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDij4trNEIVwg6AoywPLCEZwaUvWrHypIaGfQfoBpDtPshRVUxgXbPbQkVJkNAQ4KUvsGFRtxbdF1w_Jp2TiqDXYc9bgecwAwZJMM__0EKXyjtgCy3Rst8tipWoSitutY72FF2ZnKD-8PTMTIgaGanC2mJ6gNzjouXyvmW4xYcmZaWYJjqq-6b1lCuTcHrwFG9SLPfD_BLwwnQH_PXT91u9r3S6yhedxEFIsrSttdsPpc_XnuNwgpsjUvZdLa0jlSXwXOBlVQKMcAMn");'></div>
+</td>
+<td class="px-6 py-3">
+<div class="text-sm font-medium text-slate-900 dark:text-white">Atiku Abubakar</div>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800">PDP</span>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-800 dark:bg-[#1e4434] dark:text-slate-200">Presidential</span>
+</td>
+<td class="px-6 py-3 text-sm text-slate-600 dark:text-slate-400">National</td>
+<td class="px-6 py-3 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-400 hover:text-primary dark:hover:text-primary rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Edit">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Delete">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-[#152e23] transition-colors group">
+<td class="px-6 py-3">
+<div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover bg-center border border-slate-200 dark:border-slate-600 shadow-sm" data-alt="Portrait of Candidate" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCixqsP5dz8lUItNOY07PyT391_2mluVUMakGgkz7Gh9sq3et6KSt7d6M0j13ybx9UePO24oTwklUSL5XIaueY_49STGRHxlk0v-A_9gUXG29DXAInIMCuz3V_F9SvnGFfyM8O5pB6Goy1unYZ44S1bo32zw0D1tJkBhluyKxJ58U7L1z44PtBoxVVrRuEWZ98MNi4v1FM6diHIXt6KnOtrWjCjKCD_oeIxeS3yG1bkyJsI3UUhTQdhGMBBwnBIj7N0jtUkhAmC6Epb");'></div>
+</td>
+<td class="px-6 py-3">
+<div class="text-sm font-medium text-slate-900 dark:text-white">Peter Obi</div>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800">LP</span>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-800 dark:bg-[#1e4434] dark:text-slate-200">Presidential</span>
+</td>
+<td class="px-6 py-3 text-sm text-slate-600 dark:text-slate-400">National</td>
+<td class="px-6 py-3 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-400 hover:text-primary dark:hover:text-primary rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Edit">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Delete">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-[#152e23] transition-colors group">
+<td class="px-6 py-3">
+<div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover bg-center border border-slate-200 dark:border-slate-600 shadow-sm" data-alt="Portrait of Candidate" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBfJm-ux235QURjlPTYqtUCO7GXa3jZ4yCuyGIgLI7aLBsBGBcN0zrSNzlBOR7qk752pXojdPJn3mq9jdy8Uyv29ZH0j6u02VuFHaV0aDfrVBhnWjA6S86qJeRrXkMQf--gyq__Z1uZm7GyCHr7dNdQsG0byPH5wyKj1hCPgPPOPAmrS_BgdavBIdK-5zRqDkvjUqPkdcztLINiZFx_PGPUjYHt1a5J7V2Krpw5pAtE31KO1GWLjhcyrie_OjyNaufpJpu5ybXORzde");'></div>
+</td>
+<td class="px-6 py-3">
+<div class="text-sm font-medium text-slate-900 dark:text-white">Rabiu Kwankwaso</div>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-800">NNPP</span>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-800 dark:bg-[#1e4434] dark:text-slate-200">Presidential</span>
+</td>
+<td class="px-6 py-3 text-sm text-slate-600 dark:text-slate-400">National</td>
+<td class="px-6 py-3 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-400 hover:text-primary dark:hover:text-primary rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Edit">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Delete">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-slate-50 dark:hover:bg-[#152e23] transition-colors group">
+<td class="px-6 py-3">
+<div class="size-10 rounded-full bg-slate-200 dark:bg-slate-700 bg-cover bg-center border border-slate-200 dark:border-slate-600 shadow-sm" data-alt="Portrait of Candidate" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAVY6B9e_zvlq6jlf04bIoEwL2UpWPphZXEjgnZA896d8TMelnTVEfIm4x06joAOWlY5oOaSb-_xcAMBfiTz3e8IqaOOWo27x1_3am1SzI_dBSwBEmUUP3vntGR6PF4mQO88Coyc_k6pNXHSX3W06pAhpJhLUodvfkH8QNQEdWsZrjB1pT5WSzwiRtKu5vDnjZnXDWezq2L5glKjbTOVplRWOtvJkr6Ke59Xk8vVklqm-lfShbNGCra2ZsQY3fnAHfpbd1n0BvXAGeR");'></div>
+</td>
+<td class="px-6 py-3">
+<div class="text-sm font-medium text-slate-900 dark:text-white">Seyi Makinde</div>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800">PDP</span>
+</td>
+<td class="px-6 py-3">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-800 dark:bg-[#1e4434] dark:text-slate-200">Governorship</span>
+</td>
+<td class="px-6 py-3 text-sm text-slate-600 dark:text-slate-400">Oyo</td>
+<td class="px-6 py-3 text-right">
+<div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1.5 text-slate-400 hover:text-primary dark:hover:text-primary rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Edit">
+<span class="material-symbols-outlined text-[18px]">edit</span>
+</button>
+<button class="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-md hover:bg-slate-100 dark:hover:bg-[#1e4434] transition-colors" title="Delete">
+<span class="material-symbols-outlined text-[18px]">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Right Side Panel: Election Tier Status -->
+<div class="w-80 flex-shrink-0 flex flex-col gap-4">
+<div class="bg-white dark:bg-[#122a20] rounded-xl border border-slate-200 dark:border-[#1e4434] shadow-sm p-5">
+<h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">Election Tier Status</h3>
+<div class="space-y-4">
+<!-- Tier Item -->
+<div class="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-[#1e4434] bg-slate-50 dark:bg-[#0f231b]">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-slate-900 dark:text-white">Presidential</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">National Level</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold text-primary">OPEN</span>
+<div class="w-10 h-5 bg-primary rounded-full relative cursor-pointer">
+<div class="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm"></div>
+</div>
+</div>
+</div>
+<!-- Tier Item -->
+<div class="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-[#1e4434] bg-slate-50 dark:bg-[#0f231b]">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-slate-900 dark:text-white">Senate</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">Senatorial Districts</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold text-primary">OPEN</span>
+<div class="w-10 h-5 bg-primary rounded-full relative cursor-pointer">
+<div class="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm"></div>
+</div>
+</div>
+</div>
+<!-- Tier Item -->
+<div class="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-[#1e4434] bg-slate-50 dark:bg-[#0f231b]">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-slate-900 dark:text-white">HoR</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">Federal Constituencies</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold text-primary">OPEN</span>
+<div class="w-10 h-5 bg-primary rounded-full relative cursor-pointer">
+<div class="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5 shadow-sm"></div>
+</div>
+</div>
+</div>
+<!-- Tier Item -->
+<div class="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-[#1e4434] bg-slate-50 dark:bg-[#0f231b]">
+<div class="flex flex-col">
+<span class="text-sm font-semibold text-slate-900 dark:text-white">Governorship</span>
+<span class="text-xs text-slate-500 dark:text-slate-400">State Level</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold text-slate-400 dark:text-slate-500">CLOSED</span>
+<div class="w-10 h-5 bg-slate-200 dark:bg-[#1e4434] rounded-full relative cursor-pointer">
+<div class="w-4 h-4 bg-white dark:bg-slate-400 rounded-full absolute left-0.5 top-0.5 shadow-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
